@@ -4,23 +4,23 @@
 
 // Retina-sharp vector battery icon reacting dynamically to all hardware conditions
 static NSImage *createVoltCraftStatusIcon(int percentage, ChargeState state, BOOL externalConnected, BOOL isCharging) {
-    NSSize size = NSMakeSize(28, 14);
+    NSSize size = NSMakeSize(29.0, 14.5);
 
     return [NSImage imageWithSize:size flipped:NO drawingHandler:^BOOL(NSRect dstRect) {
         CGFloat bodyX = 0.5;
         CGFloat bodyY = 1.0;
-        CGFloat bodyW = 22.0;
-        CGFloat bodyH = 12.0;
-        CGFloat cornerR = 3.2;
+        CGFloat bodyW = 23.0;
+        CGFloat bodyH = 12.5;
+        CGFloat cornerR = 3.4;
 
         NSRect bodyRect = NSMakeRect(bodyX, bodyY, bodyW, bodyH);
         NSBezierPath *body = [NSBezierPath bezierPathWithRoundedRect:bodyRect xRadius:cornerR yRadius:cornerR];
 
         // Terminal Cap on Right
         CGFloat capX = bodyX + bodyW + 0.6;
-        CGFloat capY = bodyY + 3.2;
+        CGFloat capY = bodyY + 3.4;
         CGFloat capW = 1.8;
-        CGFloat capH = 5.6;
+        CGFloat capH = 5.7;
         NSRect capRect = NSMakeRect(capX, capY, capW, capH);
         NSBezierPath *cap = [NSBezierPath bezierPathWithRoundedRect:capRect xRadius:0.9 yRadius:0.9];
 
@@ -71,9 +71,9 @@ static NSImage *createVoltCraftStatusIcon(int percentage, ChargeState state, BOO
         [fillColor setFill];
         NSRectFill(fillRect);
 
-        // 3. Text and Glyphs inside the battery
+        // 3. Text and Glyphs inside the battery (prominent, legible font size)
         NSString *pctStr = [NSString stringWithFormat:@"%d", percentage];
-        CGFloat fontSize = (percentage >= 100) ? 7.6 : 8.2;
+        CGFloat fontSize = (percentage >= 100) ? 8.2 : 9.8;
         NSFont *font = [NSFont systemFontOfSize:fontSize weight:NSFontWeightBold];
         NSDictionary *attrs = @{
             NSFontAttributeName: font,
@@ -84,12 +84,12 @@ static NSImage *createVoltCraftStatusIcon(int percentage, ChargeState state, BOO
         if (externalConnected) {
             if (state == ChargeStateDischarging) {
                 // --- STATE A: FORCED DISCHARGE ON AC (Down Arrow) ---
-                CGFloat arrW = 4.2;
-                CGFloat arrH = 7.2;
-                CGFloat spacing = 0.9;
+                CGFloat arrW = 4.0;
+                CGFloat arrH = 7.4;
+                CGFloat spacing = 0.8;
                 CGFloat totalW = textSize.width + spacing + arrW;
                 CGFloat startX = bodyX + (bodyW - totalW) / 2.0;
-                CGFloat textY = bodyY + (bodyH - textSize.height) / 2.0 - 0.4;
+                CGFloat textY = bodyY + (bodyH - textSize.height) / 2.0 - 0.2;
 
                 [pctStr drawAtPoint:NSMakePoint(startX, textY) withAttributes:attrs];
 
@@ -108,12 +108,12 @@ static NSImage *createVoltCraftStatusIcon(int percentage, ChargeState state, BOO
 
             } else if (state == ChargeStateNormalCharging || state == ChargeStateTopUp || (isCharging && state != ChargeStateHoldingLimit)) {
                 // --- STATE B: CHARGING (Sharp Lightning Bolt) ---
-                CGFloat boltW = 4.4;
+                CGFloat boltW = 4.2;
                 CGFloat boltH = 8.6;
                 CGFloat spacing = 0.8;
                 CGFloat totalW = textSize.width + spacing + boltW;
                 CGFloat startX = bodyX + (bodyW - totalW) / 2.0;
-                CGFloat textY = bodyY + (bodyH - textSize.height) / 2.0 - 0.4;
+                CGFloat textY = bodyY + (bodyH - textSize.height) / 2.0 - 0.2;
 
                 [pctStr drawAtPoint:NSMakePoint(startX, textY) withAttributes:attrs];
 
@@ -121,12 +121,12 @@ static NSImage *createVoltCraftStatusIcon(int percentage, ChargeState state, BOO
                 CGFloat by = bodyY + (bodyH - boltH) / 2.0;
 
                 NSBezierPath *bolt = [NSBezierPath bezierPath];
-                [bolt moveToPoint:NSMakePoint(bx + 2.6, by + boltH)];
+                [bolt moveToPoint:NSMakePoint(bx + 2.5, by + boltH)];
                 [bolt lineToPoint:NSMakePoint(bx + 0.2, by + 3.8)];
-                [bolt lineToPoint:NSMakePoint(bx + 2.3, by + 3.8)];
-                [bolt lineToPoint:NSMakePoint(bx + 1.8, by + 0.0)];
-                [bolt lineToPoint:NSMakePoint(bx + 4.4, by + 4.8)];
-                [bolt lineToPoint:NSMakePoint(bx + 2.3, by + 4.8)];
+                [bolt lineToPoint:NSMakePoint(bx + 2.2, by + 3.8)];
+                [bolt lineToPoint:NSMakePoint(bx + 1.7, by + 0.0)];
+                [bolt lineToPoint:NSMakePoint(bx + 4.2, by + 4.8)];
+                [bolt lineToPoint:NSMakePoint(bx + 2.2, by + 4.8)];
                 [bolt closePath];
                 [textColor setFill];
                 [bolt fill];
@@ -135,10 +135,10 @@ static NSImage *createVoltCraftStatusIcon(int percentage, ChargeState state, BOO
                 // --- STATE C: HEAT PAUSED (Pause Bars) ---
                 CGFloat barW = 1.4;
                 CGFloat barH = 6.0;
-                CGFloat spacing = 1.2;
-                CGFloat totalW = textSize.width + spacing + (barW * 2 + 1.4);
+                CGFloat spacing = 1.0;
+                CGFloat totalW = textSize.width + spacing + (barW * 2 + 1.2);
                 CGFloat startX = bodyX + (bodyW - totalW) / 2.0;
-                CGFloat textY = bodyY + (bodyH - textSize.height) / 2.0 - 0.4;
+                CGFloat textY = bodyY + (bodyH - textSize.height) / 2.0 - 0.2;
 
                 [pctStr drawAtPoint:NSMakePoint(startX, textY) withAttributes:attrs];
 
@@ -147,16 +147,16 @@ static NSImage *createVoltCraftStatusIcon(int percentage, ChargeState state, BOO
 
                 [textColor setFill];
                 NSRectFill(NSMakeRect(px, py, barW, barH));
-                NSRectFill(NSMakeRect(px + barW + 1.4, py, barW, barH));
+                NSRectFill(NSMakeRect(px + barW + 1.2, py, barW, barH));
 
             } else if (state == ChargeStateSailing) {
                 // --- STATE D: SAILING MODE (Gentle Wave) ---
-                CGFloat waveW = 5.0;
+                CGFloat waveW = 4.8;
                 CGFloat waveH = 3.0;
                 CGFloat spacing = 0.8;
                 CGFloat totalW = textSize.width + spacing + waveW;
                 CGFloat startX = bodyX + (bodyW - totalW) / 2.0;
-                CGFloat textY = bodyY + (bodyH - textSize.height) / 2.0 - 0.4;
+                CGFloat textY = bodyY + (bodyH - textSize.height) / 2.0 - 0.2;
 
                 [pctStr drawAtPoint:NSMakePoint(startX, textY) withAttributes:attrs];
 
@@ -165,20 +165,20 @@ static NSImage *createVoltCraftStatusIcon(int percentage, ChargeState state, BOO
 
                 NSBezierPath *wave = [NSBezierPath bezierPath];
                 [wave moveToPoint:NSMakePoint(wx, wy + 1.5)];
-                [wave curveToPoint:NSMakePoint(wx + 2.5, wy + 1.5) controlPoint1:NSMakePoint(wx + 0.8, wy + 3.2) controlPoint2:NSMakePoint(wx + 1.7, wy + 3.2)];
-                [wave curveToPoint:NSMakePoint(wx + 5.0, wy + 1.5) controlPoint1:NSMakePoint(wx + 3.3, wy - 0.2) controlPoint2:NSMakePoint(wx + 4.2, wy - 0.2)];
+                [wave curveToPoint:NSMakePoint(wx + 2.4, wy + 1.5) controlPoint1:NSMakePoint(wx + 0.8, wy + 3.2) controlPoint2:NSMakePoint(wx + 1.6, wy + 3.2)];
+                [wave curveToPoint:NSMakePoint(wx + 4.8, wy + 1.5) controlPoint1:NSMakePoint(wx + 3.2, wy - 0.2) controlPoint2:NSMakePoint(wx + 4.0, wy - 0.2)];
                 [wave setLineWidth:1.2];
                 [textColor setStroke];
                 [wave stroke];
 
             } else {
                 // --- STATE E: HOLDING LIMIT / ON CHARGER NOT CHARGING (Power Plug) ---
-                CGFloat plugW = 5.0;
-                CGFloat plugH = 6.0;
+                CGFloat plugW = 4.8;
+                CGFloat plugH = 5.8;
                 CGFloat spacing = 0.8;
                 CGFloat totalW = textSize.width + spacing + plugW;
                 CGFloat startX = bodyX + (bodyW - totalW) / 2.0;
-                CGFloat textY = bodyY + (bodyH - textSize.height) / 2.0 - 0.4;
+                CGFloat textY = bodyY + (bodyH - textSize.height) / 2.0 - 0.2;
 
                 [pctStr drawAtPoint:NSMakePoint(startX, textY) withAttributes:attrs];
 
@@ -186,21 +186,21 @@ static NSImage *createVoltCraftStatusIcon(int percentage, ChargeState state, BOO
                 CGFloat py = bodyY + (bodyH - plugH) / 2.0;
 
                 // Plug body
-                NSRect pBody = NSMakeRect(px, py + 1.2, 3.2, 3.6);
+                NSRect pBody = NSMakeRect(px, py + 1.2, 3.0, 3.4);
                 NSBezierPath *pPath = [NSBezierPath bezierPathWithRoundedRect:pBody xRadius:0.6 yRadius:0.6];
                 [textColor setFill];
                 [pPath fill];
 
                 // Prongs on right
-                NSRect prong1 = NSMakeRect(px + 3.2, py + 3.4, 1.8, 0.9);
-                NSRect prong2 = NSMakeRect(px + 3.2, py + 1.7, 1.8, 0.9);
+                NSRect prong1 = NSMakeRect(px + 3.0, py + 3.3, 1.8, 0.9);
+                NSRect prong2 = NSMakeRect(px + 3.0, py + 1.6, 1.8, 0.9);
                 NSRectFill(prong1);
                 NSRectFill(prong2);
             }
         } else {
             // --- STATE F: ON BATTERY (UNPLUGGED) -> Clean Centered Percentage ---
             CGFloat textX = bodyX + (bodyW - textSize.width) / 2.0;
-            CGFloat textY = bodyY + (bodyH - textSize.height) / 2.0 - 0.4;
+            CGFloat textY = bodyY + (bodyH - textSize.height) / 2.0 - 0.2;
             [pctStr drawAtPoint:NSMakePoint(textX, textY) withAttributes:attrs];
         }
 
