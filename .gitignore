@@ -1,0 +1,15 @@
+# Build Artifacts
+voltcraft
+voltcraft-helper
+VoltCraft.app/
+*.o
+*.dSYM/
+
+# OS Artifacts
+.DS_Store
+*.swp
+*~
+
+# Temporary and Scratch Files
+test_*
+/tmp/
