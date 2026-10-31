@@ -74,38 +74,40 @@
 }
 
 - (void)setupSidebarUI {
-    CGFloat y = 605;
+    // Window height is 680. Traffic lights are at top (y: 650..670).
+    // Start Dashboard below traffic lights at top Y = 636.
+    CGFloat curY = 636;
 
     // --- 1. Dashboard Item ---
-    [self addSidebarItem:@"Dashboard" symbol:@"square.grid.2x2" section:SidebarSectionDashboard atY:y];
-    y -= 52;
+    curY = [self addSidebarItem:@"Dashboard" symbol:@"square.grid.2x2" section:SidebarSectionDashboard belowTopY:curY];
 
     // --- 2. Battery Care Section ---
-    [self addSectionHeader:@"Battery Care" atY:y];
-    y -= 26;
-    [self addSidebarItem:@"Charge Control" symbol:@"battery.100" section:SidebarSectionChargeControl atY:y];
-    y -= 34;
-    [self addSidebarItem:@"Sleep Behavior" symbol:@"moon.fill" section:SidebarSectionSleepBehavior atY:y];
-    y -= 34;
-    [self addSidebarItem:@"Energy Use" symbol:@"bolt.fill" section:SidebarSectionEnergyUse atY:y];
-    y -= 48;
+    curY -= 22; // Comfortable margin before section header
+    curY = [self addSectionHeader:@"Battery Care" belowTopY:curY];
+    curY -= 8;  // Clean breathing room between header and first item (NO OVERLAP)
+    curY = [self addSidebarItem:@"Charge Control" symbol:@"battery.100" section:SidebarSectionChargeControl belowTopY:curY];
+    curY -= 4;  // Consistent spacing between items
+    curY = [self addSidebarItem:@"Sleep Behavior" symbol:@"moon.fill" section:SidebarSectionSleepBehavior belowTopY:curY];
+    curY -= 4;
+    curY = [self addSidebarItem:@"Energy Use" symbol:@"bolt.fill" section:SidebarSectionEnergyUse belowTopY:curY];
 
     // --- 3. Automations Section ---
-    [self addSectionHeader:@"Automations" atY:y];
-    y -= 26;
-    [self addSidebarItem:@"Schedule" symbol:@"calendar" section:SidebarSectionSchedule atY:y];
-    y -= 34;
-    [self addSidebarItem:@"Shortcuts" symbol:@"command" section:SidebarSectionShortcuts atY:y];
-    y -= 48;
+    curY -= 22;
+    curY = [self addSectionHeader:@"Automations" belowTopY:curY];
+    curY -= 8;
+    curY = [self addSidebarItem:@"Schedule" symbol:@"calendar" section:SidebarSectionSchedule belowTopY:curY];
+    curY -= 4;
+    curY = [self addSidebarItem:@"Shortcuts" symbol:@"command" section:SidebarSectionShortcuts belowTopY:curY];
 
     // --- 4. Appearance Section ---
-    [self addSectionHeader:@"Appearance" atY:y];
-    y -= 26;
-    [self addSidebarItem:@"Popover" symbol:@"rectangle.topthird.inset.filled" section:SidebarSectionPopover atY:y];
-    y -= 34;
-    [self addSidebarItem:@"Menu Bar" symbol:@"menubar.dock.rectangle" section:SidebarSectionMenuBar atY:y];
-    y -= 34;
-    [self addSidebarItem:@"Other" symbol:@"gearshape" section:SidebarSectionOther atY:y];
+    curY -= 22;
+    curY = [self addSectionHeader:@"Appearance" belowTopY:curY];
+    curY -= 8;
+    curY = [self addSidebarItem:@"Popover" symbol:@"rectangle.topthird.inset.filled" section:SidebarSectionPopover belowTopY:curY];
+    curY -= 4;
+    curY = [self addSidebarItem:@"Menu Bar" symbol:@"menubar.dock.rectangle" section:SidebarSectionMenuBar belowTopY:curY];
+    curY -= 4;
+    curY = [self addSidebarItem:@"Other" symbol:@"gearshape" section:SidebarSectionOther belowTopY:curY];
 
     // --- Bottom Section: Utility Buttons (Power, Help, Settings) ---
     NSButton *powerBtn = [self createCircleButtonWithSymbol:@"power" action:@selector(onPowerClicked:) atX:16 atY:18];
@@ -123,17 +125,22 @@
     [self updateSelection];
 }
 
-- (void)addSectionHeader:(NSString *)title atY:(CGFloat)y {
-    NSTextField *lbl = [[NSTextField alloc] initWithFrame:NSMakeRect(16, y, 180, 16)];
+- (CGFloat)addSectionHeader:(NSString *)title belowTopY:(CGFloat)topY {
+    CGFloat h = 16.0;
+    CGFloat bottomY = topY - h;
+    NSTextField *lbl = [[NSTextField alloc] initWithFrame:NSMakeRect(18, bottomY, 175, h)];
     lbl.stringValue = title;
     lbl.font = [NSFont boldSystemFontOfSize:11];
-    lbl.textColor = [NSColor colorWithCalibratedWhite:0.45 alpha:1.0];
+    lbl.textColor = [NSColor colorWithCalibratedWhite:0.48 alpha:1.0];
     lbl.bezeled = NO; lbl.drawsBackground = NO; lbl.editable = NO;
     [self addSubview:lbl];
+    return bottomY;
 }
 
-- (void)addSidebarItem:(NSString *)title symbol:(NSString *)symbol section:(SidebarSection)sec atY:(CGFloat)y {
-    SidebarItemButton *btn = [[SidebarItemButton alloc] initWithFrame:NSMakeRect(10, y, 190, 32)];
+- (CGFloat)addSidebarItem:(NSString *)title symbol:(NSString *)symbol section:(SidebarSection)sec belowTopY:(CGFloat)topY {
+    CGFloat h = 32.0;
+    CGFloat bottomY = topY - h;
+    SidebarItemButton *btn = [[SidebarItemButton alloc] initWithFrame:NSMakeRect(10, bottomY, 190, h)];
     btn.section = sec;
     btn.itemTitle = title;
     btn.systemIcon = [NSImage imageWithSystemSymbolName:symbol accessibilityDescription:nil];
@@ -141,6 +148,7 @@
     btn.action = @selector(onItemClicked:);
     [self.buttons addObject:btn];
     [self addSubview:btn];
+    return bottomY;
 }
 
 - (NSButton *)createCircleButtonWithSymbol:(NSString *)symbol action:(SEL)action atX:(CGFloat)x atY:(CGFloat)y {
