@@ -3,218 +3,257 @@
 #import "slider_popover.h"
 
 // Retina-sharp vector battery icon reacting dynamically to all hardware conditions
-static NSImage *createVoltCraftStatusIcon(int percentage, ChargeState state, BOOL externalConnected, BOOL isCharging) {
-    NSSize size = NSMakeSize(29.0, 14.5);
+static void drawStatusContent(NSString *pctStr, NSDictionary *attrs, NSRect bodyRect, ChargeState state, BOOL externalConnected, BOOL isCharging, NSColor *glyphColor) {
+    NSSize textSize = [pctStr sizeWithAttributes:attrs];
+    CGFloat bodyX = bodyRect.origin.x;
+    CGFloat bodyY = bodyRect.origin.y;
+    CGFloat bodyW = bodyRect.size.width;
+    CGFloat bodyH = bodyRect.size.height;
 
-    return [NSImage imageWithSize:size flipped:NO drawingHandler:^BOOL(NSRect dstRect) {
-        CGFloat bodyX = 0.5;
-        CGFloat bodyY = 1.0;
-        CGFloat bodyW = 23.0;
-        CGFloat bodyH = 12.5;
-        CGFloat cornerR = 3.4;
+    if (externalConnected) {
+        if (state == ChargeStateDischarging) {
+            // --- STATE A: FORCED DISCHARGE ON AC (Down Arrow) ---
+            CGFloat arrW = 4.2;
+            CGFloat arrH = 7.6;
+            CGFloat spacing = 1.0;
+            CGFloat totalContentW = textSize.width + spacing + arrW;
+            CGFloat startX = bodyX + (bodyW - totalContentW) / 2.0;
+            CGFloat textY = bodyY + (bodyH - textSize.height) / 2.0 - 0.2;
+            [pctStr drawAtPoint:NSMakePoint(startX, textY) withAttributes:attrs];
+
+            CGFloat ax = startX + textSize.width + spacing;
+            CGFloat ay = bodyY + (bodyH - arrH) / 2.0;
+
+            NSBezierPath *arr = [NSBezierPath bezierPath];
+            [arr moveToPoint:NSMakePoint(ax + arrW / 2.0, ay + arrH)];
+            [arr lineToPoint:NSMakePoint(ax + arrW / 2.0, ay + 0.5)];
+            [arr moveToPoint:NSMakePoint(ax + 0.2, ay + 3.2)];
+            [arr lineToPoint:NSMakePoint(ax + arrW / 2.0, ay + 0.5)];
+            [arr lineToPoint:NSMakePoint(ax + arrW - 0.2, ay + 3.2)];
+            [arr setLineWidth:1.2];
+            [glyphColor setStroke];
+            [arr stroke];
+
+        } else if (state == ChargeStateNormalCharging || state == ChargeStateTopUp || (isCharging && state != ChargeStateHoldingLimit)) {
+            // --- STATE B: CHARGING (Sharp Lightning Bolt) ---
+            CGFloat boltW = 4.4;
+            CGFloat boltH = 8.8;
+            CGFloat spacing = 1.0;
+            CGFloat totalContentW = textSize.width + spacing + boltW;
+            CGFloat startX = bodyX + (bodyW - totalContentW) / 2.0;
+            CGFloat textY = bodyY + (bodyH - textSize.height) / 2.0 - 0.2;
+            [pctStr drawAtPoint:NSMakePoint(startX, textY) withAttributes:attrs];
+
+            CGFloat bx = startX + textSize.width + spacing;
+            CGFloat by = bodyY + (bodyH - boltH) / 2.0;
+
+            NSBezierPath *bolt = [NSBezierPath bezierPath];
+            [bolt moveToPoint:NSMakePoint(bx + 2.7, by + boltH)];
+            [bolt lineToPoint:NSMakePoint(bx + 0.2, by + 4.0)];
+            [bolt lineToPoint:NSMakePoint(bx + 2.3, by + 4.0)];
+            [bolt lineToPoint:NSMakePoint(bx + 1.8, by + 0.0)];
+            [bolt lineToPoint:NSMakePoint(bx + 4.4, by + 5.0)];
+            [bolt lineToPoint:NSMakePoint(bx + 2.3, by + 5.0)];
+            [bolt closePath];
+            [glyphColor setFill];
+            [bolt fill];
+
+        } else if (state == ChargeStateHeatPaused) {
+            // --- STATE C: HEAT PAUSED (Pause Bars) ---
+            CGFloat barW = 1.4;
+            CGFloat barH = 6.2;
+            CGFloat spacing = 1.0;
+            CGFloat totalContentW = textSize.width + spacing + (barW * 2 + 1.2);
+            CGFloat startX = bodyX + (bodyW - totalContentW) / 2.0;
+            CGFloat textY = bodyY + (bodyH - textSize.height) / 2.0 - 0.2;
+            [pctStr drawAtPoint:NSMakePoint(startX, textY) withAttributes:attrs];
+
+            CGFloat px = startX + textSize.width + spacing;
+            CGFloat py = bodyY + (bodyH - barH) / 2.0;
+
+            [glyphColor setFill];
+            NSRectFill(NSMakeRect(px, py, barW, barH));
+            NSRectFill(NSMakeRect(px + barW + 1.2, py, barW, barH));
+
+        } else if (state == ChargeStateSailing) {
+            // --- STATE D: SAILING MODE (Gentle Wave) ---
+            CGFloat waveW = 5.0;
+            CGFloat waveH = 3.2;
+            CGFloat spacing = 1.0;
+            CGFloat totalContentW = textSize.width + spacing + waveW;
+            CGFloat startX = bodyX + (bodyW - totalContentW) / 2.0;
+            CGFloat textY = bodyY + (bodyH - textSize.height) / 2.0 - 0.2;
+            [pctStr drawAtPoint:NSMakePoint(startX, textY) withAttributes:attrs];
+
+            CGFloat wx = startX + textSize.width + spacing;
+            CGFloat wy = bodyY + (bodyH - waveH) / 2.0;
+
+            NSBezierPath *wave = [NSBezierPath bezierPath];
+            [wave moveToPoint:NSMakePoint(wx, wy + 1.6)];
+            [wave curveToPoint:NSMakePoint(wx + 2.5, wy + 1.6) controlPoint1:NSMakePoint(wx + 0.8, wy + 3.4) controlPoint2:NSMakePoint(wx + 1.7, wy + 3.4)];
+            [wave curveToPoint:NSMakePoint(wx + 5.0, wy + 1.6) controlPoint1:NSMakePoint(wx + 3.3, wy - 0.2) controlPoint2:NSMakePoint(wx + 4.2, wy - 0.2)];
+            [wave setLineWidth:1.2];
+            [glyphColor setStroke];
+            [wave stroke];
+
+        } else {
+            // --- STATE E: HOLDING LIMIT / ON CHARGER NOT CHARGING (Power Plug) ---
+            CGFloat plugW = 4.8;
+            CGFloat plugH = 5.8;
+            CGFloat spacing = 1.0;
+            CGFloat totalContentW = textSize.width + spacing + plugW;
+            CGFloat startX = bodyX + (bodyW - totalContentW) / 2.0;
+            CGFloat textY = bodyY + (bodyH - textSize.height) / 2.0 - 0.2;
+            [pctStr drawAtPoint:NSMakePoint(startX, textY) withAttributes:attrs];
+
+            CGFloat px = startX + textSize.width + spacing;
+            CGFloat py = bodyY + (bodyH - plugH) / 2.0;
+
+            // Plug body
+            NSRect pBody = NSMakeRect(px, py + 1.2, 3.0, 3.4);
+            NSBezierPath *pPath = [NSBezierPath bezierPathWithRoundedRect:pBody xRadius:0.6 yRadius:0.6];
+            [glyphColor setFill];
+            [pPath fill];
+
+            // Prongs on right
+            NSRect prong1 = NSMakeRect(px + 3.0, py + 3.3, 1.8, 0.9);
+            NSRect prong2 = NSMakeRect(px + 3.0, py + 1.6, 1.8, 0.9);
+            NSRectFill(prong1);
+            NSRectFill(prong2);
+        }
+    } else {
+        // --- STATE F: ON BATTERY (UNPLUGGED) -> Clean Centered Percentage ---
+        CGFloat textX = bodyX + (bodyW - textSize.width) / 2.0;
+        CGFloat textY = bodyY + (bodyH - textSize.height) / 2.0 - 0.2;
+        [pctStr drawAtPoint:NSMakePoint(textX, textY) withAttributes:attrs];
+    }
+}
+
+static NSImage *createVoltCraftStatusIcon(int percentage, ChargeState state, BOOL externalConnected, BOOL isCharging) {
+    CGFloat totalW = 36.0;
+    CGFloat totalH = 15.5;
+    NSSize size = NSMakeSize(totalW, totalH);
+
+    NSImage *icon = [NSImage imageWithSize:size flipped:NO drawingHandler:^BOOL(NSRect dstRect) {
+        CGFloat strokeW = 1.15;
+        CGFloat capW = 2.0;
+        CGFloat capH = 5.6;
+        CGFloat capGap = 1.0;
+
+        CGFloat bodyX = 1.0;
+        CGFloat bodyY = 1.25;
+        CGFloat bodyH = 13.0;
+        CGFloat bodyW = totalW - bodyX - capW - capGap - 1.0;
+        CGFloat cornerR = 3.6;
 
         NSRect bodyRect = NSMakeRect(bodyX, bodyY, bodyW, bodyH);
         NSBezierPath *body = [NSBezierPath bezierPathWithRoundedRect:bodyRect xRadius:cornerR yRadius:cornerR];
 
         // Terminal Cap on Right
-        CGFloat capX = bodyX + bodyW + 0.6;
-        CGFloat capY = bodyY + 3.4;
-        CGFloat capW = 1.8;
-        CGFloat capH = 5.7;
+        CGFloat capX = bodyX + bodyW + capGap;
+        CGFloat capY = bodyY + (bodyH - capH) / 2.0;
         NSRect capRect = NSMakeRect(capX, capY, capW, capH);
-        NSBezierPath *cap = [NSBezierPath bezierPathWithRoundedRect:capRect xRadius:0.9 yRadius:0.9];
+        NSBezierPath *cap = [NSBezierPath bezierPathWithRoundedRect:capRect xRadius:1.0 yRadius:1.0];
+
+        // Appearance Check
+        BOOL isDark = YES;
+        if (@available(macOS 10.14, *)) {
+            NSAppearanceName bestMatch = [[NSApp effectiveAppearance] bestMatchFromAppearancesWithNames:@[NSAppearanceNameAqua, NSAppearanceNameDarkAqua]];
+            isDark = [bestMatch isEqualToString:NSAppearanceNameDarkAqua];
+        }
 
         // 1. Unfilled Background Shell
-        NSColor *unfilledColor = [NSColor colorWithCalibratedWhite:0.35 alpha:0.55];
-        [unfilledColor setFill];
+        NSColor *shellBgColor = isDark ? [NSColor colorWithCalibratedWhite:1.0 alpha:0.18]
+                                       : [NSColor colorWithCalibratedWhite:0.0 alpha:0.12];
+        [shellBgColor setFill];
         [body fill];
-        [cap fill];
 
-        // 2. Fill Level (Clipped to body)
-        [NSGraphicsContext saveGraphicsState];
-        [body addClip];
-
-        CGFloat fillPct = MAX(0.06, MIN(percentage / 100.0, 1.0));
-        CGFloat fillW = bodyW * fillPct;
-        NSRect fillRect = NSMakeRect(bodyX, bodyY, fillW, bodyH);
-
-        // Determine Pill Fill Color & Text Color based on live charge state
-        NSColor *fillColor = [NSColor colorWithCalibratedWhite:0.94 alpha:1.0];
-        NSColor *textColor = [NSColor colorWithCalibratedWhite:0.12 alpha:1.0];
+        // 2. Determine Fill Color & Over-fill text color
+        NSColor *fillColor = [NSColor colorWithCalibratedWhite:0.95 alpha:1.0];
+        BOOL isFillDark = NO;
 
         if (state == ChargeStateNormalCharging || state == ChargeStateTopUp) {
             // Charging: Vibrant Apple Green
-            fillColor = [NSColor colorWithCalibratedRed:0.20 green:0.80 blue:0.38 alpha:1.0];
-            textColor = [NSColor colorWithCalibratedWhite:0.06 alpha:1.0];
+            fillColor = [NSColor colorWithCalibratedRed:0.20 green:0.82 blue:0.40 alpha:1.0];
         } else if (state == ChargeStateDischarging) {
             // Forced Discharge: Active Alert Amber/Orange
             fillColor = [NSColor colorWithCalibratedRed:1.0 green:0.62 blue:0.12 alpha:1.0];
-            textColor = [NSColor colorWithCalibratedWhite:0.06 alpha:1.0];
         } else if (state == ChargeStateHeatPaused) {
             // Thermal Guard: Red Warning
-            fillColor = [NSColor colorWithCalibratedRed:1.0 green:0.32 blue:0.25 alpha:1.0];
-            textColor = [NSColor whiteColor];
+            fillColor = [NSColor colorWithCalibratedRed:1.0 green:0.30 blue:0.25 alpha:1.0];
+            isFillDark = YES; // White text over red
         } else if (state == ChargeStateSailing) {
             // Sailing Mode: Sea Cyan
             fillColor = [NSColor colorWithCalibratedRed:0.22 green:0.75 blue:0.95 alpha:1.0];
-            textColor = [NSColor colorWithCalibratedWhite:0.06 alpha:1.0];
         } else if (!externalConnected && percentage <= 20) {
             // Low Battery on Unplugged: Warning Red
             fillColor = [NSColor colorWithCalibratedRed:1.0 green:0.25 blue:0.25 alpha:1.0];
-            textColor = [NSColor whiteColor];
+            isFillDark = YES; // White text over red
         } else {
             // Holding at limit on AC, or on battery > 20%: Clean crisp white/silver
-            fillColor = [NSColor colorWithCalibratedWhite:0.94 alpha:1.0];
-            textColor = [NSColor colorWithCalibratedWhite:0.12 alpha:1.0];
+            if (isDark) {
+                fillColor = [NSColor colorWithCalibratedWhite:0.95 alpha:1.0];
+            } else {
+                fillColor = [NSColor colorWithCalibratedWhite:0.35 alpha:1.0];
+                isFillDark = YES;
+            }
         }
 
+        // 3. Draw Fill Level (Clipped to body)
+        CGFloat fillPct = MAX(0.04, MIN(percentage / 100.0, 1.0));
+        CGFloat fillW = bodyW * fillPct;
+        NSRect fillRect = NSMakeRect(bodyX, bodyY, fillW, bodyH);
+
+        [NSGraphicsContext saveGraphicsState];
+        [body addClip];
         [fillColor setFill];
         NSRectFill(fillRect);
-
-        // 3. Text and Glyphs inside the battery (prominent, legible font size)
-        NSString *pctStr = [NSString stringWithFormat:@"%d", percentage];
-        CGFloat fontSize = (percentage >= 100) ? 8.2 : 9.8;
-        NSFont *font = [NSFont systemFontOfSize:fontSize weight:NSFontWeightBold];
-        NSDictionary *attrs = @{
-            NSFontAttributeName: font,
-            NSForegroundColorAttributeName: textColor
-        };
-        NSSize textSize = [pctStr sizeWithAttributes:attrs];
-
-        if (externalConnected) {
-            if (state == ChargeStateDischarging) {
-                // --- STATE A: FORCED DISCHARGE ON AC (Down Arrow) ---
-                CGFloat arrW = 4.0;
-                CGFloat arrH = 7.4;
-                CGFloat spacing = 0.8;
-                CGFloat totalW = textSize.width + spacing + arrW;
-                CGFloat startX = bodyX + (bodyW - totalW) / 2.0;
-                CGFloat textY = bodyY + (bodyH - textSize.height) / 2.0 - 0.2;
-
-                [pctStr drawAtPoint:NSMakePoint(startX, textY) withAttributes:attrs];
-
-                CGFloat ax = startX + textSize.width + spacing;
-                CGFloat ay = bodyY + (bodyH - arrH) / 2.0;
-
-                NSBezierPath *arr = [NSBezierPath bezierPath];
-                [arr moveToPoint:NSMakePoint(ax + arrW / 2.0, ay + arrH)];
-                [arr lineToPoint:NSMakePoint(ax + arrW / 2.0, ay + 0.5)];
-                [arr moveToPoint:NSMakePoint(ax + 0.2, ay + 3.2)];
-                [arr lineToPoint:NSMakePoint(ax + arrW / 2.0, ay + 0.5)];
-                [arr lineToPoint:NSMakePoint(ax + arrW - 0.2, ay + 3.2)];
-                [arr setLineWidth:1.2];
-                [textColor setStroke];
-                [arr stroke];
-
-            } else if (state == ChargeStateNormalCharging || state == ChargeStateTopUp || (isCharging && state != ChargeStateHoldingLimit)) {
-                // --- STATE B: CHARGING (Sharp Lightning Bolt) ---
-                CGFloat boltW = 4.2;
-                CGFloat boltH = 8.6;
-                CGFloat spacing = 0.8;
-                CGFloat totalW = textSize.width + spacing + boltW;
-                CGFloat startX = bodyX + (bodyW - totalW) / 2.0;
-                CGFloat textY = bodyY + (bodyH - textSize.height) / 2.0 - 0.2;
-
-                [pctStr drawAtPoint:NSMakePoint(startX, textY) withAttributes:attrs];
-
-                CGFloat bx = startX + textSize.width + spacing;
-                CGFloat by = bodyY + (bodyH - boltH) / 2.0;
-
-                NSBezierPath *bolt = [NSBezierPath bezierPath];
-                [bolt moveToPoint:NSMakePoint(bx + 2.5, by + boltH)];
-                [bolt lineToPoint:NSMakePoint(bx + 0.2, by + 3.8)];
-                [bolt lineToPoint:NSMakePoint(bx + 2.2, by + 3.8)];
-                [bolt lineToPoint:NSMakePoint(bx + 1.7, by + 0.0)];
-                [bolt lineToPoint:NSMakePoint(bx + 4.2, by + 4.8)];
-                [bolt lineToPoint:NSMakePoint(bx + 2.2, by + 4.8)];
-                [bolt closePath];
-                [textColor setFill];
-                [bolt fill];
-
-            } else if (state == ChargeStateHeatPaused) {
-                // --- STATE C: HEAT PAUSED (Pause Bars) ---
-                CGFloat barW = 1.4;
-                CGFloat barH = 6.0;
-                CGFloat spacing = 1.0;
-                CGFloat totalW = textSize.width + spacing + (barW * 2 + 1.2);
-                CGFloat startX = bodyX + (bodyW - totalW) / 2.0;
-                CGFloat textY = bodyY + (bodyH - textSize.height) / 2.0 - 0.2;
-
-                [pctStr drawAtPoint:NSMakePoint(startX, textY) withAttributes:attrs];
-
-                CGFloat px = startX + textSize.width + spacing;
-                CGFloat py = bodyY + (bodyH - barH) / 2.0;
-
-                [textColor setFill];
-                NSRectFill(NSMakeRect(px, py, barW, barH));
-                NSRectFill(NSMakeRect(px + barW + 1.2, py, barW, barH));
-
-            } else if (state == ChargeStateSailing) {
-                // --- STATE D: SAILING MODE (Gentle Wave) ---
-                CGFloat waveW = 4.8;
-                CGFloat waveH = 3.0;
-                CGFloat spacing = 0.8;
-                CGFloat totalW = textSize.width + spacing + waveW;
-                CGFloat startX = bodyX + (bodyW - totalW) / 2.0;
-                CGFloat textY = bodyY + (bodyH - textSize.height) / 2.0 - 0.2;
-
-                [pctStr drawAtPoint:NSMakePoint(startX, textY) withAttributes:attrs];
-
-                CGFloat wx = startX + textSize.width + spacing;
-                CGFloat wy = bodyY + (bodyH - waveH) / 2.0;
-
-                NSBezierPath *wave = [NSBezierPath bezierPath];
-                [wave moveToPoint:NSMakePoint(wx, wy + 1.5)];
-                [wave curveToPoint:NSMakePoint(wx + 2.4, wy + 1.5) controlPoint1:NSMakePoint(wx + 0.8, wy + 3.2) controlPoint2:NSMakePoint(wx + 1.6, wy + 3.2)];
-                [wave curveToPoint:NSMakePoint(wx + 4.8, wy + 1.5) controlPoint1:NSMakePoint(wx + 3.2, wy - 0.2) controlPoint2:NSMakePoint(wx + 4.0, wy - 0.2)];
-                [wave setLineWidth:1.2];
-                [textColor setStroke];
-                [wave stroke];
-
-            } else {
-                // --- STATE E: HOLDING LIMIT / ON CHARGER NOT CHARGING (Power Plug) ---
-                CGFloat plugW = 4.8;
-                CGFloat plugH = 5.8;
-                CGFloat spacing = 0.8;
-                CGFloat totalW = textSize.width + spacing + plugW;
-                CGFloat startX = bodyX + (bodyW - totalW) / 2.0;
-                CGFloat textY = bodyY + (bodyH - textSize.height) / 2.0 - 0.2;
-
-                [pctStr drawAtPoint:NSMakePoint(startX, textY) withAttributes:attrs];
-
-                CGFloat px = startX + textSize.width + spacing;
-                CGFloat py = bodyY + (bodyH - plugH) / 2.0;
-
-                // Plug body
-                NSRect pBody = NSMakeRect(px, py + 1.2, 3.0, 3.4);
-                NSBezierPath *pPath = [NSBezierPath bezierPathWithRoundedRect:pBody xRadius:0.6 yRadius:0.6];
-                [textColor setFill];
-                [pPath fill];
-
-                // Prongs on right
-                NSRect prong1 = NSMakeRect(px + 3.0, py + 3.3, 1.8, 0.9);
-                NSRect prong2 = NSMakeRect(px + 3.0, py + 1.6, 1.8, 0.9);
-                NSRectFill(prong1);
-                NSRectFill(prong2);
-            }
-        } else {
-            // --- STATE F: ON BATTERY (UNPLUGGED) -> Clean Centered Percentage ---
-            CGFloat textX = bodyX + (bodyW - textSize.width) / 2.0;
-            CGFloat textY = bodyY + (bodyH - textSize.height) / 2.0 - 0.2;
-            [pctStr drawAtPoint:NSMakePoint(textX, textY) withAttributes:attrs];
-        }
-
         [NSGraphicsContext restoreGraphicsState];
 
-        // 4. Subtle Outer Rim Stroke (0.6pt for crisp edge against any desktop)
-        [[NSColor colorWithCalibratedWhite:0.6 alpha:0.35] setStroke];
-        [body setLineWidth:0.6];
+        // 4. Two-Pass Content Drawing (Split Color for 100% legibility across dark mode)
+        NSString *pctStr = [NSString stringWithFormat:@"%d", percentage];
+        CGFloat fontSize = (percentage >= 100) ? 8.6 : 10.2;
+        NSFont *font = [NSFont systemFontOfSize:fontSize weight:NSFontWeightBold];
+
+        // Pass A: Over unfilled background -> Clean Crisp White in Dark Mode
+        NSColor *unfilledTextColor = isDark ? [NSColor colorWithCalibratedWhite:1.0 alpha:0.95]
+                                            : [NSColor colorWithCalibratedWhite:0.1 alpha:0.95];
+        [NSGraphicsContext saveGraphicsState];
+        [body addClip];
+        NSDictionary *unfilledAttrs = @{
+            NSFontAttributeName: font,
+            NSForegroundColorAttributeName: unfilledTextColor
+        };
+        drawStatusContent(pctStr, unfilledAttrs, bodyRect, state, externalConnected, isCharging, unfilledTextColor);
+        [NSGraphicsContext restoreGraphicsState];
+
+        // Pass B: Over filled background -> High contrast (Dark/Black or White if red)
+        NSColor *filledTextColor = isFillDark ? [NSColor whiteColor] : [NSColor colorWithCalibratedWhite:0.05 alpha:1.0];
+        [NSGraphicsContext saveGraphicsState];
+        [body addClip];
+        NSRectClip(fillRect); // Only over the filled area!
+        NSDictionary *filledAttrs = @{
+            NSFontAttributeName: font,
+            NSForegroundColorAttributeName: filledTextColor
+        };
+        drawStatusContent(pctStr, filledAttrs, bodyRect, state, externalConnected, isCharging, filledTextColor);
+        [NSGraphicsContext restoreGraphicsState];
+
+        // 5. Crisp Outer Border Stroke & Cap (High visibility in Dark Mode)
+        NSColor *borderColor = isDark ? [NSColor colorWithCalibratedWhite:1.0 alpha:0.85]
+                                      : [NSColor colorWithCalibratedWhite:0.1 alpha:0.85];
+        [borderColor setStroke];
+        [body setLineWidth:strokeW];
         [body stroke];
-        [cap setLineWidth:0.6];
-        [cap stroke];
+
+        [borderColor setFill];
+        [cap fill];
 
         return YES;
     }];
+
+    [icon setTemplate:NO];
+    return icon;
 }
 
 @implementation VoltCraftAppDelegate
