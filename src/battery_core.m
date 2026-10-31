@@ -316,7 +316,8 @@ BOOL setChargeLimit(int limit, NSError **error) {
     gConfig.chargeLimit = limit;
 
     BatteryTelemetry tel = getBatteryTelemetry();
-    if (tel.externalConnected) {
+    BOOL isPluggedIn = tel.externalConnected || gConfig.isDischarging;
+    if (isPluggedIn) {
         if (tel.currentCapacity > limit) {
             // Lowered slider below current percentage -> Auto Discharge to target limit
             gConfig.isDischarging = YES;
@@ -328,6 +329,10 @@ BOOL setChargeLimit(int limit, NSError **error) {
             // Exact match -> Hold at current percentage
             gConfig.isDischarging = NO;
         }
+    }
+
+    if (limit < 100) {
+        gConfig.isTopUpActive = NO;
     }
 
     saveProConfig();
@@ -800,7 +805,21 @@ BatteryTelemetry getBatteryTelemetry(void) {
         tel.currentCapacity = [props[@"CurrentCapacity"] intValue];
         tel.maxCapacity = [props[@"MaxCapacity"] intValue];
         tel.cycleCount = [props[@"CycleCount"] intValue];
-        tel.externalConnected = [props[@"ExternalConnected"] boolValue];
+        
+        BOOL extConn = [props[@"ExternalConnected"] boolValue];
+        if (!extConn) {
+            NSArray *fed = props[@"FedDetails"];
+            if ([fed isKindOfClass:[NSArray class]]) {
+                for (NSDictionary *d in fed) {
+                    if ([d isKindOfClass:[NSDictionary class]] && [d[@"FedExternalConnected"] boolValue]) {
+                        extConn = YES;
+                        break;
+                    }
+                }
+            }
+        }
+        tel.externalConnected = extConn;
+
         tel.voltageMv = [props[@"Voltage"] intValue];
         tel.amperageMa = [props[@"Amperage"] intValue];
 

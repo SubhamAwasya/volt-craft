@@ -196,8 +196,8 @@ static void applyHardwareSettings(void) {
         // Re-affirm LED after inhibit
         writeSMCByte("ACLC", ledVal);
     } else {
-        // Clear discharge inhibit (0x08 = Factory default: AC connected)
-        writeSMCByte("CHIE", 0x08);
+        // Clear discharge inhibit (0x00 = AC power connected & sinking)
+        writeSMCByte("CHIE", 0x00);
         writeSMCByte("CH0B", 0x00);
         writeSMCByte("CH0C", 0x00);
         writeSMCByte("CH0I", 0x00);
