@@ -4,6 +4,9 @@
 #import <Cocoa/Cocoa.h>
 #import "main_window.h"
 #import "slider_popover.h"
+#import "battery_core.h"
+
+NSImage *createVoltCraftStatusIcon(int percentage, ChargeState state, BOOL externalConnected, BOOL isCharging);
 
 @interface VoltCraftAppDelegate : NSObject <NSApplicationDelegate, SliderPopoverDelegate>
 

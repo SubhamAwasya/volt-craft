@@ -230,6 +230,14 @@ void loadProConfig(void) {
     gConfig.sleepPrevented = NO;
     gConfig.calibrationPhase = CalibrationPhaseIdle;
 
+    // Menu Bar Icon Defaults
+    gConfig.iconShowPercentage = YES;
+    gConfig.iconShowGlyphs = YES;
+    gConfig.iconShowPercentSign = NO;
+    gConfig.iconHighContrastBorder = YES;
+    gConfig.iconWidth = 36;
+    gConfig.iconColorMode = 0;
+
     NSData *data = [NSData dataWithContentsOfFile:getConfigFilePath()];
     if (data) {
         NSDictionary *dict = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
@@ -246,12 +254,20 @@ void loadProConfig(void) {
             if (dict[@"isDischarging"]) gConfig.isDischarging = [dict[@"isDischarging"] boolValue];
             if (dict[@"isTopUpActive"]) gConfig.isTopUpActive = [dict[@"isTopUpActive"] boolValue];
             if (dict[@"sleepPrevented"]) gConfig.sleepPrevented = [dict[@"sleepPrevented"] boolValue];
+
+            if (dict[@"iconShowPercentage"]) gConfig.iconShowPercentage = [dict[@"iconShowPercentage"] boolValue];
+            if (dict[@"iconShowGlyphs"]) gConfig.iconShowGlyphs = [dict[@"iconShowGlyphs"] boolValue];
+            if (dict[@"iconShowPercentSign"]) gConfig.iconShowPercentSign = [dict[@"iconShowPercentSign"] boolValue];
+            if (dict[@"iconHighContrastBorder"]) gConfig.iconHighContrastBorder = [dict[@"iconHighContrastBorder"] boolValue];
+            if (dict[@"iconWidth"]) gConfig.iconWidth = [dict[@"iconWidth"] intValue];
+            if (dict[@"iconColorMode"]) gConfig.iconColorMode = [dict[@"iconColorMode"] intValue];
         }
     }
 
     if (gConfig.chargeLimit < 20 || gConfig.chargeLimit > 100) gConfig.chargeLimit = 80;
     if (gConfig.sailingDifference < 1 || gConfig.sailingDifference > 15) gConfig.sailingDifference = 5;
     if (gConfig.maxTemperatureC < 30.0f || gConfig.maxTemperatureC > 50.0f) gConfig.maxTemperatureC = 35.0f;
+    if (gConfig.iconWidth < 26 || gConfig.iconWidth > 46) gConfig.iconWidth = 36;
 
     // Initialize history buffers
     for (int i = 0; i < HISTORY_POINTS; i++) {
@@ -276,12 +292,68 @@ void saveProConfig(void) {
         @"launchAtLogin": @(gConfig.launchAtLogin),
         @"isDischarging": @(gConfig.isDischarging),
         @"isTopUpActive": @(gConfig.isTopUpActive),
-        @"sleepPrevented": @(gConfig.sleepPrevented)
+        @"sleepPrevented": @(gConfig.sleepPrevented),
+        @"iconShowPercentage": @(gConfig.iconShowPercentage),
+        @"iconShowGlyphs": @(gConfig.iconShowGlyphs),
+        @"iconShowPercentSign": @(gConfig.iconShowPercentSign),
+        @"iconHighContrastBorder": @(gConfig.iconHighContrastBorder),
+        @"iconWidth": @(gConfig.iconWidth),
+        @"iconColorMode": @(gConfig.iconColorMode)
     };
     NSData *data = [NSJSONSerialization dataWithJSONObject:dict options:NSJSONWritingPrettyPrinted error:nil];
     if (data) {
         [data writeToFile:getConfigFilePath() atomically:YES];
     }
+}
+
+static void notifyIconConfigChanged(void) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [[NSNotificationCenter defaultCenter] postNotificationName:kVoltCraftIconConfigChangedNotification object:nil];
+    });
+}
+
+void setIconShowPercentage(BOOL show) {
+    ensureConfigLoaded();
+    gConfig.iconShowPercentage = show;
+    saveProConfig();
+    notifyIconConfigChanged();
+}
+
+void setIconShowGlyphs(BOOL show) {
+    ensureConfigLoaded();
+    gConfig.iconShowGlyphs = show;
+    saveProConfig();
+    notifyIconConfigChanged();
+}
+
+void setIconShowPercentSign(BOOL show) {
+    ensureConfigLoaded();
+    gConfig.iconShowPercentSign = show;
+    saveProConfig();
+    notifyIconConfigChanged();
+}
+
+void setIconHighContrastBorder(BOOL show) {
+    ensureConfigLoaded();
+    gConfig.iconHighContrastBorder = show;
+    saveProConfig();
+    notifyIconConfigChanged();
+}
+
+void setIconWidth(int width) {
+    ensureConfigLoaded();
+    if (width < 26) width = 26;
+    if (width > 46) width = 46;
+    gConfig.iconWidth = width;
+    saveProConfig();
+    notifyIconConfigChanged();
+}
+
+void setIconColorMode(int mode) {
+    ensureConfigLoaded();
+    gConfig.iconColorMode = mode;
+    saveProConfig();
+    notifyIconConfigChanged();
 }
 
 void resetProConfig(void) {

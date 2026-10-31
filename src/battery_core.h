@@ -72,9 +72,19 @@ typedef struct {
     NSTimeInterval calibrationHoldStartTime;
     int calibrationTargetLimit;
     
+    // Menu Bar Icon Customization
+    BOOL iconShowPercentage;      // Show percentage inside (default: YES)
+    BOOL iconShowGlyphs;          // Show bolt / arrow / plug (default: YES)
+    BOOL iconShowPercentSign;     // Show "%" symbol (default: NO)
+    BOOL iconHighContrastBorder;  // High-contrast dark mode border (default: YES)
+    int  iconWidth;               // Custom width in pt: 28 to 44 (default: 36)
+    int  iconColorMode;           // 0 = Dynamic Colors, 1 = Monochrome (default: 0)
+
     // General
     BOOL launchAtLogin;
 } VoltCraftConfig;
+
+#define kVoltCraftIconConfigChangedNotification @"VoltCraftIconConfigChangedNotification"
 
 #ifdef __cplusplus
 extern "C" {
@@ -91,6 +101,14 @@ VoltCraftConfig *getProConfig(void);
 void loadProConfig(void);
 void saveProConfig(void);
 void resetProConfig(void);
+
+// Icon Configuration Setters
+void setIconShowPercentage(BOOL show);
+void setIconShowGlyphs(BOOL show);
+void setIconShowPercentSign(BOOL show);
+void setIconHighContrastBorder(BOOL show);
+void setIconWidth(int width);
+void setIconColorMode(int mode);
 
 // Charge Limit Control
 BOOL setChargeLimit(int limit, NSError **error);

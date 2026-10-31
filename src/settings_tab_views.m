@@ -1,5 +1,6 @@
 #import "settings_tab_views.h"
 #import "battery_core.h"
+#import "menu_bar.h"
 
 // --- Shared Base Card ---
 @implementation SettingsCardView
@@ -485,6 +486,20 @@ static NSButton *addSwitchRow(NSView *card, NSString *title, NSString *subtext, 
 // =========================================================================
 // 6. Menu Bar Settings View
 // =========================================================================
+@interface MenuBarSettingsView ()
+@property (nonatomic, strong) NSImageView *previewImageView;
+@property (nonatomic, strong) NSImageView *preview1xView;
+@property (nonatomic, strong) NSTextField *previewStatusLabel;
+@property (nonatomic, strong) NSButton *showPercentageSwitch;
+@property (nonatomic, strong) NSButton *showGlyphsSwitch;
+@property (nonatomic, strong) NSButton *showPercentSignSwitch;
+@property (nonatomic, strong) NSButton *highContrastSwitch;
+@property (nonatomic, strong) NSSlider *widthSlider;
+@property (nonatomic, strong) NSTextField *widthDisplayLabel;
+@property (nonatomic, strong) NSSegmentedControl *presetControl;
+@property (nonatomic, strong) NSSegmentedControl *themeControl;
+@end
+
 @implementation MenuBarSettingsView
 
 - (instancetype)initWithFrame:(NSRect)frameRect {
@@ -493,37 +508,246 @@ static NSButton *addSwitchRow(NSView *card, NSString *title, NSString *subtext, 
         self.wantsLayer = YES;
         self.layer.backgroundColor = [NSColor colorWithCalibratedRed:0.10 green:0.105 blue:0.115 alpha:1.0].CGColor;
         [self setupUI];
+        [self refreshUI];
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(refreshUI)
+                                                     name:kVoltCraftIconConfigChangedNotification
+                                                   object:nil];
     }
     return self;
 }
 
+- (void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+}
+
 - (void)setupUI {
-    addPageHeader(self, @"Menu Bar", @"Configure the appearance and information displayed in the macOS menu bar.");
+    addPageHeader(self, @"Menu Bar", @"Customize your menu bar battery icon, live size, glyphs, and Dark Mode appearance.");
 
-    CGFloat y = 430;
-    SettingsCardView *card1 = [SettingsCardView cardWithFrame:NSMakeRect(25, y, 690, 130)];
+    // --- CARD 1: Live Interactive Preview (y = 455, h = 105) ---
+    SettingsCardView *card1 = [SettingsCardView cardWithFrame:NSMakeRect(25, 455, 690, 105)];
     [self addSubview:card1];
-    addCardHeader(card1, @"Status Bar Icon Style", 95);
+    addCardHeader(card1, @"Live Interactive Icon Preview", 75);
 
-    addSwitchRow(card1, @"Battery pill with percentage & status (Current Style)",
-                 @"Renders the native battery pill with level fill, percentage number, and lightning bolt inside.", 52, nil, nil).state = NSControlStateValueOn;
+    self.previewStatusLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(20, 16, 320, 52)];
+    self.previewStatusLabel.font = [NSFont systemFontOfSize:11];
+    self.previewStatusLabel.textColor = [NSColor colorWithCalibratedWhite:0.65 alpha:1.0];
+    self.previewStatusLabel.bezeled = NO; self.previewStatusLabel.drawsBackground = NO; self.previewStatusLabel.editable = NO;
+    [card1 addSubview:self.previewStatusLabel];
 
-    addSwitchRow(card1, @"Show lightning bolt indicator while charging",
-                 @"Displays a high-voltage bolt icon inside the battery pill when connected to power.", 10, nil, nil).state = NSControlStateValueOn;
+    // Simulated macOS Menu Bar Container
+    NSBox *menuBarSimulator = [[NSBox alloc] initWithFrame:NSMakeRect(355, 14, 320, 76)];
+    menuBarSimulator.boxType = NSBoxCustom;
+    menuBarSimulator.cornerRadius = 10.0;
+    menuBarSimulator.fillColor = [NSColor colorWithCalibratedRed:0.09 green:0.095 blue:0.11 alpha:1.0];
+    menuBarSimulator.borderColor = [NSColor colorWithCalibratedRed:0.20 green:0.22 blue:0.26 alpha:1.0];
+    menuBarSimulator.borderWidth = 1.0;
+    [card1 addSubview:menuBarSimulator];
 
-    y -= 145;
-    SettingsCardView *card2 = [SettingsCardView cardWithFrame:NSMakeRect(25, y, 690, 130)];
+    // Label inside simulator
+    NSTextField *simLbl = [[NSTextField alloc] initWithFrame:NSMakeRect(14, 52, 290, 16)];
+    simLbl.stringValue = @"Simulated Menu Bar (Dark Mode)";
+    simLbl.font = [NSFont boldSystemFontOfSize:10];
+    simLbl.textColor = [NSColor colorWithCalibratedWhite:0.45 alpha:1.0];
+    simLbl.bezeled = NO; simLbl.drawsBackground = NO; simLbl.editable = NO;
+    [menuBarSimulator addSubview:simLbl];
+
+    // 2.5x Magnified Preview
+    self.previewImageView = [[NSImageView alloc] initWithFrame:NSMakeRect(15, 10, 120, 38)];
+    self.previewImageView.imageScaling = NSImageScaleProportionallyUpOrDown;
+    [menuBarSimulator addSubview:self.previewImageView];
+
+    // 1x Actual Size Preview
+    self.preview1xView = [[NSImageView alloc] initWithFrame:NSMakeRect(165, 20, 50, 18)];
+    self.preview1xView.imageScaling = NSImageScaleNone;
+    [menuBarSimulator addSubview:self.preview1xView];
+
+    NSTextField *actualLbl = [[NSTextField alloc] initWithFrame:NSMakeRect(225, 20, 85, 18)];
+    actualLbl.stringValue = @"(1x Actual)";
+    actualLbl.font = [NSFont systemFontOfSize:10];
+    actualLbl.textColor = [NSColor colorWithCalibratedWhite:0.50 alpha:1.0];
+    actualLbl.bezeled = NO; actualLbl.drawsBackground = NO; actualLbl.editable = NO;
+    [menuBarSimulator addSubview:actualLbl];
+
+    // --- CARD 2: Icon Display Elements (y = 260, h = 180) ---
+    SettingsCardView *card2 = [SettingsCardView cardWithFrame:NSMakeRect(25, 260, 690, 180)];
     [self addSubview:card2];
-    addCardHeader(card2, @"Thermal & Alert Highlights", 95);
+    addCardHeader(card2, @"Icon Display Elements & Content", 150);
 
-    addSwitchRow(card2, @"Highlight battery orange when thermally paused",
-                 @"Provides immediate visual indication in the menu bar when heat protection triggers.", 52, nil, nil).state = NSControlStateValueOn;
+    self.showPercentageSwitch = addSwitchRow(card2, @"Show percentage number inside battery icon",
+                                             @"Displays your live battery charge percentage inside the battery pill.", 108,
+                                             self, @selector(onTogglePercentage:));
 
-    addSwitchRow(card2, @"Show remaining charge time in hover tooltip",
-                 @"Displays estimated minutes until target charge limit is reached on hover.", 10, nil, nil).state = NSControlStateValueOn;
+    self.showGlyphsSwitch = addSwitchRow(card2, @"Show status glyphs (Lightning bolt, Down arrow, Plug)",
+                                         @"Displays charging bolt, forced discharge arrow, or AC plug icon.", 70,
+                                         self, @selector(onToggleGlyphs:));
+
+    self.showPercentSignSwitch = addSwitchRow(card2, @"Append percent symbol (e.g. \"88%\" instead of \"88\")",
+                                              @"Includes the '%' character inside the battery pill.", 32,
+                                              self, @selector(onTogglePercentSign:));
+
+    self.highContrastSwitch = addSwitchRow(card2, @"High-contrast dark mode outline & cap",
+                                           @"Crisp translucent white stroke around the shell so the outline is 100% visible on dark backgrounds.", -6,
+                                           self, @selector(onToggleHighContrast:));
+
+    // --- CARD 3: Size & Color Appearance (y = 75, h = 170) ---
+    SettingsCardView *card3 = [SettingsCardView cardWithFrame:NSMakeRect(25, 75, 690, 170)];
+    [self addSubview:card3];
+    addCardHeader(card3, @"Size & Color Style", 140);
+
+    // Row 1: Width Slider & Display
+    NSTextField *widthLbl = [[NSTextField alloc] initWithFrame:NSMakeRect(20, 105, 160, 18)];
+    widthLbl.stringValue = @"Battery Icon Width:";
+    widthLbl.font = [NSFont boldSystemFontOfSize:13];
+    widthLbl.textColor = [NSColor whiteColor];
+    widthLbl.bezeled = NO; widthLbl.drawsBackground = NO; widthLbl.editable = NO;
+    [card3 addSubview:widthLbl];
+
+    self.widthDisplayLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(165, 105, 160, 18)];
+    self.widthDisplayLabel.font = [NSFont boldSystemFontOfSize:13];
+    self.widthDisplayLabel.textColor = [NSColor colorWithCalibratedRed:0.28 green:0.68 blue:1.0 alpha:1.0];
+    self.widthDisplayLabel.bezeled = NO; self.widthDisplayLabel.drawsBackground = NO; self.widthDisplayLabel.editable = NO;
+    [card3 addSubview:self.widthDisplayLabel];
+
+    self.widthSlider = [[NSSlider alloc] initWithFrame:NSMakeRect(340, 104, 320, 20)];
+    self.widthSlider.minValue = 28;
+    self.widthSlider.maxValue = 42;
+    self.widthSlider.numberOfTickMarks = 8;
+    self.widthSlider.allowsTickMarkValuesOnly = NO;
+    self.widthSlider.target = self;
+    self.widthSlider.action = @selector(onWidthSliderChanged:);
+    [card3 addSubview:self.widthSlider];
+
+    // Preset Segmented Control
+    NSTextField *presetLbl = [[NSTextField alloc] initWithFrame:NSMakeRect(20, 68, 140, 18)];
+    presetLbl.stringValue = @"Quick Width Presets:";
+    presetLbl.font = [NSFont systemFontOfSize:12];
+    presetLbl.textColor = [NSColor colorWithCalibratedWhite:0.65 alpha:1.0];
+    presetLbl.bezeled = NO; presetLbl.drawsBackground = NO; presetLbl.editable = NO;
+    [card3 addSubview:presetLbl];
+
+    self.presetControl = [NSSegmentedControl segmentedControlWithLabels:@[@"Compact (28pt)", @"Standard (32pt)", @"Wide (36pt)", @"Extra (40pt)"]
+                                                           trackingMode:NSSegmentSwitchTrackingSelectOne
+                                                                 target:self
+                                                                 action:@selector(onPresetSelected:)];
+    self.presetControl.frame = NSMakeRect(165, 64, 495, 24);
+    [card3 addSubview:self.presetControl];
+
+    // Row 2: Color Theme Segmented Control
+    NSTextField *themeLbl = [[NSTextField alloc] initWithFrame:NSMakeRect(20, 24, 140, 18)];
+    themeLbl.stringValue = @"Color Palette:";
+    themeLbl.font = [NSFont boldSystemFontOfSize:13];
+    themeLbl.textColor = [NSColor whiteColor];
+    themeLbl.bezeled = NO; themeLbl.drawsBackground = NO; themeLbl.editable = NO;
+    [card3 addSubview:themeLbl];
+
+    self.themeControl = [NSSegmentedControl segmentedControlWithLabels:@[@"Dynamic State Colors (Green / Amber / Cyan / Red)", @"Monochrome (Apple Pure White)"]
+                                                          trackingMode:NSSegmentSwitchTrackingSelectOne
+                                                                target:self
+                                                                action:@selector(onThemeSelected:)];
+    self.themeControl.frame = NSMakeRect(165, 20, 495, 26);
+    [card3 addSubview:self.themeControl];
 }
 
 - (void)refreshUI {
+    VoltCraftConfig *cfg = getProConfig();
+
+    self.showPercentageSwitch.state = cfg->iconShowPercentage ? NSControlStateValueOn : NSControlStateValueOff;
+    self.showGlyphsSwitch.state = cfg->iconShowGlyphs ? NSControlStateValueOn : NSControlStateValueOff;
+    self.showPercentSignSwitch.state = cfg->iconShowPercentSign ? NSControlStateValueOn : NSControlStateValueOff;
+    self.highContrastSwitch.state = cfg->iconHighContrastBorder ? NSControlStateValueOn : NSControlStateValueOff;
+
+    self.widthSlider.intValue = cfg->iconWidth;
+
+    NSString *presetName = @"Custom";
+    if (cfg->iconWidth == 28) {
+        [self.presetControl setSelectedSegment:0];
+        presetName = @"Compact";
+    } else if (cfg->iconWidth == 32) {
+        [self.presetControl setSelectedSegment:1];
+        presetName = @"Standard";
+    } else if (cfg->iconWidth == 36) {
+        [self.presetControl setSelectedSegment:2];
+        presetName = @"Wide";
+    } else if (cfg->iconWidth == 40) {
+        [self.presetControl setSelectedSegment:3];
+        presetName = @"Extra";
+    } else {
+        [self.presetControl setSelectedSegment:-1];
+    }
+
+    self.widthDisplayLabel.stringValue = [NSString stringWithFormat:@"%d pt (%@)", cfg->iconWidth, presetName];
+
+    [self.themeControl setSelectedSegment:(cfg->iconColorMode == 1 ? 1 : 0)];
+
+    [self updatePreview];
+}
+
+- (void)updatePreview {
+    BatteryTelemetry tel = getBatteryTelemetry();
+    ChargeState state = getOverallChargeState();
+
+    NSImage *icon = createVoltCraftStatusIcon(tel.currentCapacity, state, tel.externalConnected, tel.isCharging);
+    if (!icon) return;
+
+    self.preview1xView.image = icon;
+
+    NSSize sz = icon.size;
+    CGFloat scale = 2.4;
+    NSImage *largeImg = [[NSImage alloc] initWithSize:NSMakeSize(sz.width * scale, sz.height * scale)];
+    [largeImg lockFocus];
+    [NSGraphicsContext currentContext].imageInterpolation = NSImageInterpolationHigh;
+    [icon drawInRect:NSMakeRect(0, 0, sz.width * scale, sz.height * scale)
+            fromRect:NSMakeRect(0, 0, sz.width, sz.height)
+           operation:NSCompositingOperationSourceOver
+            fraction:1.0];
+    [largeImg unlockFocus];
+    self.previewImageView.image = largeImg;
+
+    NSString *chargeDesc = getChargeStateDescription(state);
+    self.previewStatusLabel.stringValue = [NSString stringWithFormat:@"Current Live Telemetry:\n• Battery: %d%%\n• State: %@\n• Power: %@",
+        tel.currentCapacity,
+        chargeDesc,
+        tel.externalConnected ? [NSString stringWithFormat:@"%s (%dW)", tel.chargerName, tel.chargerWatts] : @"On Battery"];
+}
+
+- (void)onTogglePercentage:(NSButton *)sender {
+    setIconShowPercentage(sender.state == NSControlStateValueOn);
+    [self refreshUI];
+}
+
+- (void)onToggleGlyphs:(NSButton *)sender {
+    setIconShowGlyphs(sender.state == NSControlStateValueOn);
+    [self refreshUI];
+}
+
+- (void)onTogglePercentSign:(NSButton *)sender {
+    setIconShowPercentSign(sender.state == NSControlStateValueOn);
+    [self refreshUI];
+}
+
+- (void)onToggleHighContrast:(NSButton *)sender {
+    setIconHighContrastBorder(sender.state == NSControlStateValueOn);
+    [self refreshUI];
+}
+
+- (void)onWidthSliderChanged:(NSSlider *)sender {
+    setIconWidth(sender.intValue);
+    [self refreshUI];
+}
+
+- (void)onPresetSelected:(NSSegmentedControl *)sender {
+    int widths[] = {28, 32, 36, 40};
+    NSInteger seg = sender.selectedSegment;
+    if (seg >= 0 && seg < 4) {
+        setIconWidth(widths[seg]);
+        [self refreshUI];
+    }
+}
+
+- (void)onThemeSelected:(NSSegmentedControl *)sender {
+    setIconColorMode((int)sender.selectedSegment);
+    [self refreshUI];
 }
 
 @end
