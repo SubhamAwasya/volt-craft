@@ -113,10 +113,16 @@ static void drawStatusContent(NSString *pctStr, NSDictionary *attrs, NSRect body
 
         } else {
             // --- STATE E: HOLDING LIMIT / ON CHARGER NOT CHARGING (Power Plug) ---
-            CGFloat plugW = 4.8;
-            CGFloat plugH = 5.8;
+            CGFloat plugBodyW = 4.2;
+            CGFloat plugBodyH = 7.2;
+            CGFloat prongL = 2.2;
+            CGFloat prongH = 1.3;
+            CGFloat prongGap = 1.8;
+            CGFloat collarW = 0.8;
+
+            CGFloat totalPlugW = collarW + plugBodyW + prongL;
             CGFloat spacing = hasText ? 1.0 : 0.0;
-            CGFloat totalContentW = textSize.width + spacing + plugW;
+            CGFloat totalContentW = textSize.width + spacing + totalPlugW;
             CGFloat startX = bodyX + (bodyW - totalContentW) / 2.0;
 
             if (hasText) {
@@ -124,20 +130,30 @@ static void drawStatusContent(NSString *pctStr, NSDictionary *attrs, NSRect body
                 [pctStr drawAtPoint:NSMakePoint(startX, textY) withAttributes:attrs];
             }
 
-            CGFloat px = hasText ? (startX + textSize.width + spacing) : (bodyX + (bodyW - plugW) / 2.0);
-            CGFloat py = bodyY + (bodyH - plugH) / 2.0;
+            CGFloat px = hasText ? (startX + textSize.width + spacing + collarW) : (bodyX + (bodyW - totalPlugW) / 2.0 + collarW);
+            CGFloat py = bodyY + (bodyH - plugBodyH) / 2.0;
 
-            // Plug body
-            NSRect pBody = NSMakeRect(px, py + 1.2, 3.0, 3.4);
-            NSBezierPath *pPath = [NSBezierPath bezierPathWithRoundedRect:pBody xRadius:0.6 yRadius:0.6];
+            // Plug main body
+            NSRect pBody = NSMakeRect(px, py, plugBodyW, plugBodyH);
+            NSBezierPath *pPath = [NSBezierPath bezierPathWithRoundedRect:pBody xRadius:1.0 yRadius:1.0];
             [glyphColor setFill];
             [pPath fill];
 
-            // Prongs on right
-            NSRect prong1 = NSMakeRect(px + 3.0, py + 3.3, 1.8, 0.9);
-            NSRect prong2 = NSMakeRect(px + 3.0, py + 1.6, 1.8, 0.9);
-            NSRectFill(prong1);
-            NSRectFill(prong2);
+            // Cord relief collar on left
+            CGFloat collarH = plugBodyH * 0.5;
+            NSRect collarRect = NSMakeRect(px - collarW, py + (plugBodyH - collarH) / 2.0, collarW, collarH);
+            NSBezierPath *cPath = [NSBezierPath bezierPathWithRoundedRect:collarRect xRadius:0.4 yRadius:0.4];
+            [cPath fill];
+
+            // Top & bottom prongs on right
+            CGFloat p1Y = py + (plugBodyH + prongGap) / 2.0;
+            CGFloat p2Y = py + (plugBodyH - prongGap) / 2.0 - prongH;
+            NSRect prong1 = NSMakeRect(px + plugBodyW, p1Y, prongL, prongH);
+            NSRect prong2 = NSMakeRect(px + plugBodyW, p2Y, prongL, prongH);
+            NSBezierPath *pr1 = [NSBezierPath bezierPathWithRoundedRect:prong1 xRadius:0.4 yRadius:0.4];
+            NSBezierPath *pr2 = [NSBezierPath bezierPathWithRoundedRect:prong2 xRadius:0.4 yRadius:0.4];
+            [pr1 fill];
+            [pr2 fill];
         }
     } else if (hasText) {
         // Centered Percentage (Unplugged or Glyphs disabled)
