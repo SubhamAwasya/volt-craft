@@ -1,6 +1,87 @@
 #import "slider_popover.h"
 #import "battery_core.h"
 
+// Modern, symmetrically centered action pill button
+@interface ActionPillButton : NSButton
+@property (nonatomic, strong) NSColor *accentColor;
+@property (nonatomic) BOOL isActive;
+@property (nonatomic, strong) NSString *iconSymbolName;
+@property (nonatomic, strong) NSString *actionTitle;
+@end
+
+@implementation ActionPillButton
+
+- (instancetype)initWithFrame:(NSRect)frameRect {
+    self = [super initWithFrame:frameRect];
+    if (self) {
+        self.bordered = NO;
+        self.wantsLayer = YES;
+    }
+    return self;
+}
+
+- (void)drawRect:(NSRect)dirtyRect {
+    // 1. Draw pill background and border
+    NSBezierPath *bgPath = [NSBezierPath bezierPathWithRoundedRect:self.bounds xRadius:7.0 yRadius:7.0];
+    if (self.isActive && self.accentColor) {
+        [[self.accentColor colorWithAlphaComponent:0.25] setFill];
+        [bgPath fill];
+        [[self.accentColor colorWithAlphaComponent:0.85] setStroke];
+        [bgPath setLineWidth:1.0];
+        [bgPath stroke];
+    } else {
+        [[NSColor colorWithCalibratedWhite:0.20 alpha:0.45] setFill];
+        [bgPath fill];
+        [[NSColor colorWithCalibratedWhite:0.35 alpha:0.30] setStroke];
+        [bgPath setLineWidth:0.5];
+        [bgPath stroke];
+    }
+
+    if (self.cell.isHighlighted) {
+        [[NSColor colorWithCalibratedWhite:1.0 alpha:0.12] setFill];
+        [bgPath fill];
+    }
+
+    // 2. Measure text and icon to center them together as a unified visual block
+    NSColor *textColor = (self.isActive && self.accentColor) ? self.accentColor : [NSColor colorWithCalibratedWhite:0.85 alpha:1.0];
+    NSFont *font = [NSFont systemFontOfSize:10.5 weight:self.isActive ? NSFontWeightSemibold : NSFontWeightMedium];
+    NSDictionary *attrs = @{
+        NSFontAttributeName: font,
+        NSForegroundColorAttributeName: textColor
+    };
+    NSSize textSize = [self.actionTitle sizeWithAttributes:attrs];
+
+    NSImage *icon = nil;
+    if (self.iconSymbolName) {
+        NSImageSymbolConfiguration *pointCfg = [NSImageSymbolConfiguration configurationWithPointSize:12.0 weight:NSFontWeightMedium];
+        NSImageSymbolConfiguration *colorCfg = [NSImageSymbolConfiguration configurationWithPaletteColors:@[textColor]];
+        NSImageSymbolConfiguration *combined = [pointCfg configurationByApplyingConfiguration:colorCfg];
+        icon = [[NSImage imageWithSystemSymbolName:self.iconSymbolName accessibilityDescription:nil] imageWithSymbolConfiguration:combined];
+    }
+
+    CGFloat iconW = icon ? icon.size.width : 0.0;
+    CGFloat iconH = icon ? icon.size.height : 0.0;
+    CGFloat gap = (icon && self.actionTitle.length > 0) ? 5.0 : 0.0;
+    CGFloat totalW = iconW + gap + textSize.width;
+
+    // Centered start X with identical left and right padding
+    CGFloat startX = round((self.bounds.size.width - totalW) / 2.0);
+
+    // 3. Draw Icon
+    if (icon) {
+        CGFloat iconY = round((self.bounds.size.height - iconH) / 2.0);
+        NSRect iconRect = NSMakeRect(startX, iconY, iconW, iconH);
+        [icon drawInRect:iconRect fromRect:NSZeroRect operation:NSCompositingOperationSourceOver fraction:1.0 respectFlipped:YES hints:nil];
+    }
+
+    // 4. Draw Text
+    CGFloat textX = startX + iconW + gap;
+    CGFloat textY = round((self.bounds.size.height - textSize.height) / 2.0);
+    [self.actionTitle drawAtPoint:NSMakePoint(textX, textY) withAttributes:attrs];
+}
+
+@end
+
 @interface SliderPopoverViewController ()
 
 @property (nonatomic, strong) NSTextField *pctLabel;
@@ -9,9 +90,9 @@
 @property (nonatomic, strong) NSSlider *limitSlider;
 @property (nonatomic, strong) NSMutableArray<NSButton *> *presetButtons;
 
-@property (nonatomic, strong) NSButton *stopChargeButton;
-@property (nonatomic, strong) NSButton *topUpButton;
-@property (nonatomic, strong) NSButton *dischargeButton;
+@property (nonatomic, strong) ActionPillButton *stopChargeButton;
+@property (nonatomic, strong) ActionPillButton *topUpButton;
+@property (nonatomic, strong) ActionPillButton *dischargeButton;
 @property (nonatomic, strong) NSTextField *footerLabel;
 
 @end
@@ -133,21 +214,21 @@
     CGFloat actGap = 7.0;
 
     // 1. Stop Charge Button (Hold at Current %)
-    self.stopChargeButton = [[NSButton alloc] initWithFrame:NSMakeRect(14, actionY, actW, actH)];
+    self.stopChargeButton = [[ActionPillButton alloc] initWithFrame:NSMakeRect(14, actionY, actW, actH)];
     self.stopChargeButton.target = self;
     self.stopChargeButton.action = @selector(onStopChargeClicked:);
     self.stopChargeButton.toolTip = @"Set charge limit to current battery percentage to stop charging and run on AC power.";
     [root addSubview:self.stopChargeButton];
 
     // 2. Top Up Button (Charge to 100% once)
-    self.topUpButton = [[NSButton alloc] initWithFrame:NSMakeRect(14 + actW + actGap, actionY, actW, actH)];
+    self.topUpButton = [[ActionPillButton alloc] initWithFrame:NSMakeRect(14 + actW + actGap, actionY, actW, actH)];
     self.topUpButton.target = self;
     self.topUpButton.action = @selector(onTopUpClicked:);
     self.topUpButton.toolTip = @"Temporarily charge battery to 100% for travel.";
     [root addSubview:self.topUpButton];
 
     // 3. Discharge Button (Force discharge on AC)
-    self.dischargeButton = [[NSButton alloc] initWithFrame:NSMakeRect(14 + (actW + actGap) * 2, actionY, actW, actH)];
+    self.dischargeButton = [[ActionPillButton alloc] initWithFrame:NSMakeRect(14 + (actW + actGap) * 2, actionY, actW, actH)];
     self.dischargeButton.target = self;
     self.dischargeButton.action = @selector(onDischargeClicked:);
     self.dischargeButton.toolTip = @"Discharge battery to limit while remaining plugged in.";
@@ -208,43 +289,17 @@
     }
 }
 
-// Helper to style action pill buttons without clipping and with balanced centering
-- (void)styleActionButton:(NSButton *)btn
+// Helper to style action pill buttons with perfectly centered icon + label and balanced padding
+- (void)styleActionButton:(ActionPillButton *)btn
                    active:(BOOL)active
               accentColor:(NSColor *)accentColor
                     title:(NSString *)title
                  iconName:(NSString *)iconName {
-    btn.bordered = NO;
-    btn.wantsLayer = YES;
-    btn.layer.cornerRadius = 7.0;
-
-    NSImageSymbolConfiguration *symConfig = [NSImageSymbolConfiguration configurationWithPointSize:12.0 weight:NSFontWeightMedium];
-    btn.image = [[NSImage imageWithSystemSymbolName:iconName accessibilityDescription:nil] imageWithSymbolConfiguration:symConfig];
-    btn.imagePosition = NSImageLeft;
-
-    if (active) {
-        btn.layer.backgroundColor = [accentColor colorWithAlphaComponent:0.25].CGColor;
-        btn.layer.borderColor = [accentColor colorWithAlphaComponent:0.85].CGColor;
-        btn.layer.borderWidth = 1.0;
-        btn.contentTintColor = accentColor;
-
-        NSDictionary *attrs = @{
-            NSFontAttributeName: [NSFont systemFontOfSize:10.0 weight:NSFontWeightSemibold],
-            NSForegroundColorAttributeName: accentColor
-        };
-        btn.attributedTitle = [[NSAttributedString alloc] initWithString:title attributes:attrs];
-    } else {
-        btn.layer.backgroundColor = [NSColor colorWithCalibratedWhite:0.20 alpha:0.45].CGColor;
-        btn.layer.borderColor = [NSColor colorWithCalibratedWhite:0.35 alpha:0.30].CGColor;
-        btn.layer.borderWidth = 0.5;
-        btn.contentTintColor = [NSColor colorWithCalibratedWhite:0.82 alpha:1.0];
-
-        NSDictionary *attrs = @{
-            NSFontAttributeName: [NSFont systemFontOfSize:10.0 weight:NSFontWeightMedium],
-            NSForegroundColorAttributeName: [NSColor colorWithCalibratedWhite:0.82 alpha:1.0]
-        };
-        btn.attributedTitle = [[NSAttributedString alloc] initWithString:title attributes:attrs];
-    }
+    btn.isActive = active;
+    btn.accentColor = accentColor;
+    btn.actionTitle = title;
+    btn.iconSymbolName = iconName;
+    [btn setNeedsDisplay:YES];
 }
 
 - (void)refreshUI {
