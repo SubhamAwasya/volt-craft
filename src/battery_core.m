@@ -500,6 +500,18 @@ BOOL disableChargeLimiter(NSError **error) {
     return NO;
 }
 
+void stopChargingAtCurrentLevel(void) {
+    ensureConfigLoaded();
+    BatteryTelemetry tel = getBatteryTelemetry();
+    int currentCap = tel.currentCapacity;
+    if (currentCap < 20) currentCap = 20;
+    if (currentCap > 100) currentCap = 100;
+
+    gConfig.isDischarging = NO;
+    gConfig.isTopUpActive = NO;
+    setChargeLimit(currentCap, NULL);
+}
+
 void toggleDischarge(void) {
     ensureConfigLoaded();
     gConfig.isDischarging = !gConfig.isDischarging;
@@ -893,7 +905,10 @@ BatteryTelemetry getBatteryTelemetry(void) {
         tel.externalConnected = extConn;
 
         tel.voltageMv = [props[@"Voltage"] intValue];
-        tel.amperageMa = [props[@"Amperage"] intValue];
+        id ampVal = props[@"InstantAmperage"] ?: props[@"Amperage"];
+        if (ampVal) {
+            tel.amperageMa = (int)[ampVal longLongValue];
+        }
 
         NSDictionary *chargerData = props[@"ChargerData"];
         if (chargerData) {

@@ -439,6 +439,11 @@ NSImage *createVoltCraftStatusIcon(int percentage, ChargeState state, BOOL exter
     if (cfg->isTopUpActive) topUpItem.state = NSControlStateValueOn;
     [menu addItem:topUpItem];
 
+    NSMenuItem *stopItem = [[NSMenuItem alloc] initWithTitle:@"Stop Charging (Hold Current)" action:@selector(onQuickStopCharge) keyEquivalent:@"h"];
+    stopItem.target = self;
+    if (cfg->chargeLimit == tel.currentCapacity && !cfg->isDischarging && !cfg->isTopUpActive) stopItem.state = NSControlStateValueOn;
+    [menu addItem:stopItem];
+
     NSMenuItem *disItem = [[NSMenuItem alloc] initWithTitle:@"Discharge Battery" action:@selector(onQuickDischarge) keyEquivalent:@"d"];
     disItem.target = self;
     if (cfg->isDischarging) disItem.state = NSControlStateValueOn;
@@ -461,6 +466,14 @@ NSImage *createVoltCraftStatusIcon(int percentage, ChargeState state, BOOL exter
 - (void)onQuickTopUp {
     toggleTopUp();
     [self updateStatus];
+}
+
+- (void)onQuickStopCharge {
+    stopChargingAtCurrentLevel();
+    [self updateStatus];
+    if (self.popover.isShown) {
+        [self.popoverVC refreshUI];
+    }
 }
 
 - (void)onQuickDischarge {

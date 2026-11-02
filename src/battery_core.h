@@ -114,6 +114,7 @@ void setIconColorMode(int mode);
 BOOL setChargeLimit(int limit, NSError **error);
 BOOL enableChargeLimiter(NSError **error);
 BOOL disableChargeLimiter(NSError **error);
+void stopChargingAtCurrentLevel(void);
 
 // Pro Feature Actions
 void toggleDischarge(void);

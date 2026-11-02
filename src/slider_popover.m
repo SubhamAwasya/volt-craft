@@ -9,10 +9,9 @@
 @property (nonatomic, strong) NSSlider *limitSlider;
 @property (nonatomic, strong) NSMutableArray<NSButton *> *presetButtons;
 
+@property (nonatomic, strong) NSButton *stopChargeButton;
 @property (nonatomic, strong) NSButton *topUpButton;
 @property (nonatomic, strong) NSButton *dischargeButton;
-@property (nonatomic, strong) NSButton *sailingButton;
-@property (nonatomic, strong) NSButton *heatButton;
 @property (nonatomic, strong) NSTextField *footerLabel;
 
 @end
@@ -20,7 +19,7 @@
 @implementation SliderPopoverViewController
 
 - (void)loadView {
-    NSRect frame = NSMakeRect(0, 0, 310, 310);
+    NSRect frame = NSMakeRect(0, 0, 310, 350);
     NSView *root = [[NSView alloc] initWithFrame:frame];
     root.wantsLayer = YES;
     root.layer.backgroundColor = [NSColor colorWithCalibratedRed:0.10 green:0.11 blue:0.13 alpha:1.0].CGColor;
@@ -35,21 +34,21 @@
 
     // --- Header Row ---
     // Battery Percentage Large
-    self.pctLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(14, 266, 90, 32)];
-    self.pctLabel.font = [NSFont systemFontOfSize:24 weight:NSFontWeightBold];
+    self.pctLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(14, 304, 100, 34)];
+    self.pctLabel.font = [NSFont systemFontOfSize:26 weight:NSFontWeightBold];
     self.pctLabel.textColor = [NSColor whiteColor];
     self.pctLabel.bezeled = NO; self.pctLabel.drawsBackground = NO; self.pctLabel.editable = NO;
     [root addSubview:self.pctLabel];
 
     // Status Sublabel (Charging, Holding limit, etc.)
-    self.statusLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(16, 248, 220, 16)];
-    self.statusLabel.font = [NSFont systemFontOfSize:11 weight:NSFontWeightMedium];
+    self.statusLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(16, 286, 235, 16)];
+    self.statusLabel.font = [NSFont systemFontOfSize:11.5 weight:NSFontWeightMedium];
     self.statusLabel.textColor = [NSColor colorWithCalibratedWhite:0.65 alpha:1.0];
     self.statusLabel.bezeled = NO; self.statusLabel.drawsBackground = NO; self.statusLabel.editable = NO;
     [root addSubview:self.statusLabel];
 
     // Settings Gear Button in Top-Right
-    NSButton *settingsBtn = [[NSButton alloc] initWithFrame:NSMakeRect(268, 264, 28, 28)];
+    NSButton *settingsBtn = [[NSButton alloc] initWithFrame:NSMakeRect(268, 306, 28, 28)];
     settingsBtn.bezelStyle = NSBezelStyleCircular;
     settingsBtn.image = [NSImage imageWithSystemSymbolName:@"gearshape" accessibilityDescription:@"Settings"];
     settingsBtn.imagePosition = NSImageOnly;
@@ -59,7 +58,7 @@
     [root addSubview:settingsBtn];
 
     // --- Charge Limit Card ---
-    NSBox *sliderCard = [[NSBox alloc] initWithFrame:NSMakeRect(12, 126, 286, 114)];
+    NSBox *sliderCard = [[NSBox alloc] initWithFrame:NSMakeRect(12, 142, 286, 136)];
     sliderCard.titlePosition = NSNoTitle;
     sliderCard.boxType = NSBoxCustom;
     sliderCard.cornerRadius = 8.0;
@@ -70,14 +69,14 @@
 
     NSView *cardContent = sliderCard.contentView;
 
-    NSTextField *limitTitle = [[NSTextField alloc] initWithFrame:NSMakeRect(10, 86, 120, 18)];
+    NSTextField *limitTitle = [[NSTextField alloc] initWithFrame:NSMakeRect(10, 106, 120, 18)];
     limitTitle.stringValue = @"Charge Limit";
     limitTitle.font = [NSFont systemFontOfSize:12 weight:NSFontWeightSemibold];
     limitTitle.textColor = [NSColor colorWithCalibratedWhite:0.85 alpha:1.0];
     limitTitle.bezeled = NO; limitTitle.drawsBackground = NO; limitTitle.editable = NO;
     [cardContent addSubview:limitTitle];
 
-    self.limitValueLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(200, 86, 76, 18)];
+    self.limitValueLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(200, 106, 76, 18)];
     self.limitValueLabel.alignment = NSTextAlignmentRight;
     self.limitValueLabel.font = [NSFont systemFontOfSize:13 weight:NSFontWeightBold];
     self.limitValueLabel.textColor = [NSColor colorWithCalibratedRed:0.0 green:0.82 blue:1.0 alpha:1.0];
@@ -85,7 +84,7 @@
     [cardContent addSubview:self.limitValueLabel];
 
     // Continuous Slider (20% to 100%)
-    self.limitSlider = [[NSSlider alloc] initWithFrame:NSMakeRect(10, 52, 266, 24)];
+    self.limitSlider = [[NSSlider alloc] initWithFrame:NSMakeRect(10, 72, 266, 24)];
     self.limitSlider.minValue = 20.0;
     self.limitSlider.maxValue = 100.0;
     self.limitSlider.continuous = YES;
@@ -93,18 +92,17 @@
     self.limitSlider.action = @selector(onSliderChanged:);
     [cardContent addSubview:self.limitSlider];
 
-    // Preset buttons: 60%, 70%, 80%, 90%, 100%
-    NSArray *presets = @[@60, @70, @80, @90, @100];
-    CGFloat btnW = 48.0;
-    CGFloat btnSpacing = 6.0;
+    // Presets Row 1: 50%, 55%, 60%, 65%, 70%, 75% (6 buttons)
+    NSArray *row1Presets = @[@50, @55, @60, @65, @70, @75];
+    CGFloat row1BtnW = 40.0;
+    CGFloat row1Gap = 5.2;
     CGFloat startX = 10.0;
-
-    for (int i = 0; i < presets.count; i++) {
-        NSNumber *val = presets[i];
-        NSButton *btn = [[NSButton alloc] initWithFrame:NSMakeRect(startX + i * (btnW + btnSpacing), 12, btnW, 24)];
+    for (int i = 0; i < row1Presets.count; i++) {
+        NSNumber *val = row1Presets[i];
+        NSButton *btn = [[NSButton alloc] initWithFrame:NSMakeRect(startX + i * (row1BtnW + row1Gap), 38, row1BtnW, 22)];
         btn.bezelStyle = NSBezelStyleRoundRect;
         btn.title = [NSString stringWithFormat:@"%d%%", val.intValue];
-        btn.font = [NSFont systemFontOfSize:11 weight:NSFontWeightMedium];
+        btn.font = [NSFont systemFontOfSize:10.5 weight:NSFontWeightMedium];
         btn.tag = val.intValue;
         btn.target = self;
         btn.action = @selector(onPresetClicked:);
@@ -112,12 +110,39 @@
         [self.presetButtons addObject:btn];
     }
 
-    // --- Quick Action Toggles (Native SF Symbols) ---
-    CGFloat actionY = 82;
-    CGFloat halfW = 138;
+    // Presets Row 2: 80%, 85%, 90%, 95%, 100% (5 buttons)
+    NSArray *row2Presets = @[@80, @85, @90, @95, @100];
+    CGFloat row2BtnW = 48.0;
+    CGFloat row2Gap = 6.5;
+    for (int i = 0; i < row2Presets.count; i++) {
+        NSNumber *val = row2Presets[i];
+        NSButton *btn = [[NSButton alloc] initWithFrame:NSMakeRect(startX + i * (row2BtnW + row2Gap), 10, row2BtnW, 22)];
+        btn.bezelStyle = NSBezelStyleRoundRect;
+        btn.title = [NSString stringWithFormat:@"%d%%", val.intValue];
+        btn.font = [NSFont systemFontOfSize:10.5 weight:NSFontWeightMedium];
+        btn.tag = val.intValue;
+        btn.target = self;
+        btn.action = @selector(onPresetClicked:);
+        [cardContent addSubview:btn];
+        [self.presetButtons addObject:btn];
+    }
 
-    // Top Up Button
-    self.topUpButton = [[NSButton alloc] initWithFrame:NSMakeRect(12, actionY, halfW, 30)];
+    // --- Action Buttons ---
+    // Stop Charge Button (Hero Full-Width Action)
+    self.stopChargeButton = [[NSButton alloc] initWithFrame:NSMakeRect(12, 102, 286, 30)];
+    self.stopChargeButton.bezelStyle = NSBezelStyleRoundRect;
+    self.stopChargeButton.image = [NSImage imageWithSystemSymbolName:@"bolt.slash.fill" accessibilityDescription:nil];
+    self.stopChargeButton.imagePosition = NSImageLeft;
+    self.stopChargeButton.title = @" Stop Charge (Run on Charger)";
+    self.stopChargeButton.font = [NSFont systemFontOfSize:11.5 weight:NSFontWeightSemibold];
+    self.stopChargeButton.target = self;
+    self.stopChargeButton.action = @selector(onStopChargeClicked:);
+    self.stopChargeButton.toolTip = @"Set limit to current battery percentage to halt charging and run on AC adapter.";
+    [root addSubview:self.stopChargeButton];
+
+    // Secondary Action Row: Top Up & Discharge
+    CGFloat halfW = 138;
+    self.topUpButton = [[NSButton alloc] initWithFrame:NSMakeRect(12, 66, halfW, 28)];
     self.topUpButton.bezelStyle = NSBezelStyleRoundRect;
     self.topUpButton.image = [NSImage imageWithSystemSymbolName:@"bolt.fill" accessibilityDescription:nil];
     self.topUpButton.imagePosition = NSImageLeft;
@@ -127,8 +152,7 @@
     self.topUpButton.action = @selector(onTopUpClicked:);
     [root addSubview:self.topUpButton];
 
-    // Discharge Button
-    self.dischargeButton = [[NSButton alloc] initWithFrame:NSMakeRect(160, actionY, halfW, 30)];
+    self.dischargeButton = [[NSButton alloc] initWithFrame:NSMakeRect(160, 66, halfW, 28)];
     self.dischargeButton.bezelStyle = NSBezelStyleRoundRect;
     self.dischargeButton.image = [NSImage imageWithSystemSymbolName:@"arrow.down.circle" accessibilityDescription:nil];
     self.dischargeButton.imagePosition = NSImageLeft;
@@ -138,39 +162,15 @@
     self.dischargeButton.action = @selector(onDischargeClicked:);
     [root addSubview:self.dischargeButton];
 
-    actionY -= 32;
-
-    // Sailing Mode Button
-    self.sailingButton = [[NSButton alloc] initWithFrame:NSMakeRect(12, actionY, halfW, 26)];
-    self.sailingButton.bezelStyle = NSBezelStyleRoundRect;
-    self.sailingButton.image = [NSImage imageWithSystemSymbolName:@"wind" accessibilityDescription:nil];
-    self.sailingButton.imagePosition = NSImageLeft;
-    self.sailingButton.title = @" Sailing Mode";
-    self.sailingButton.font = [NSFont systemFontOfSize:10.5 weight:NSFontWeightRegular];
-    self.sailingButton.target = self;
-    self.sailingButton.action = @selector(onSailingClicked:);
-    [root addSubview:self.sailingButton];
-
-    // Heat Protection Button
-    self.heatButton = [[NSButton alloc] initWithFrame:NSMakeRect(160, actionY, halfW, 26)];
-    self.heatButton.bezelStyle = NSBezelStyleRoundRect;
-    self.heatButton.image = [NSImage imageWithSystemSymbolName:@"thermometer.medium" accessibilityDescription:nil];
-    self.heatButton.imagePosition = NSImageLeft;
-    self.heatButton.title = @" Heat Guard";
-    self.heatButton.font = [NSFont systemFontOfSize:10.5 weight:NSFontWeightRegular];
-    self.heatButton.target = self;
-    self.heatButton.action = @selector(onHeatClicked:);
-    [root addSubview:self.heatButton];
-
     // --- Footer Telemetry ---
-    self.footerLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(14, 8, 250, 32)];
+    self.footerLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(14, 10, 252, 46)];
     self.footerLabel.font = [NSFont systemFontOfSize:10 weight:NSFontWeightRegular];
-    self.footerLabel.textColor = [NSColor colorWithCalibratedWhite:0.55 alpha:1.0];
+    self.footerLabel.textColor = [NSColor colorWithCalibratedWhite:0.6 alpha:1.0];
     self.footerLabel.bezeled = NO; self.footerLabel.drawsBackground = NO; self.footerLabel.editable = NO;
     [root addSubview:self.footerLabel];
 
     // Power / Quit Button
-    NSButton *quitBtn = [[NSButton alloc] initWithFrame:NSMakeRect(272, 10, 24, 24)];
+    NSButton *quitBtn = [[NSButton alloc] initWithFrame:NSMakeRect(272, 18, 24, 24)];
     quitBtn.bezelStyle = NSBezelStyleCircular;
     quitBtn.image = [NSImage imageWithSystemSymbolName:@"power" accessibilityDescription:@"Quit"];
     quitBtn.imagePosition = NSImageOnly;
@@ -198,6 +198,8 @@
         self.statusLabel.textColor = [NSColor systemOrangeColor];
     } else if (state == ChargeStateNormalCharging || state == ChargeStateTopUp) {
         self.statusLabel.textColor = [NSColor colorWithCalibratedRed:0.20 green:0.85 blue:0.40 alpha:1.0];
+    } else if (state == ChargeStateHoldingLimit) {
+        self.statusLabel.textColor = [NSColor colorWithCalibratedRed:0.0 green:0.82 blue:1.0 alpha:1.0];
     } else {
         self.statusLabel.textColor = [NSColor colorWithCalibratedWhite:0.75 alpha:1.0];
     }
@@ -205,13 +207,27 @@
     self.limitValueLabel.stringValue = [NSString stringWithFormat:@"%d%%", cfg->chargeLimit];
     self.limitSlider.integerValue = cfg->chargeLimit;
 
-    // Highlight active preset
+    // Highlight active preset button
     for (NSButton *btn in self.presetButtons) {
         if (btn.tag == cfg->chargeLimit) {
             btn.contentTintColor = [NSColor colorWithCalibratedRed:0.0 green:0.82 blue:1.0 alpha:1.0];
         } else {
             btn.contentTintColor = [NSColor labelColor];
         }
+    }
+
+    // Stop Charge Button State
+    BOOL isHoldingCurrent = tel.externalConnected && (cfg->chargeLimit == tel.currentCapacity || state == ChargeStateHoldingLimit);
+    if (isHoldingCurrent && !cfg->isDischarging && !cfg->isTopUpActive) {
+        self.stopChargeButton.title = [NSString stringWithFormat:@" Charge Stopped (Holding at %d%%)", tel.currentCapacity];
+        self.stopChargeButton.contentTintColor = [NSColor colorWithCalibratedRed:0.0 green:0.82 blue:1.0 alpha:1.0];
+    } else {
+        if (tel.externalConnected) {
+            self.stopChargeButton.title = [NSString stringWithFormat:@" Stop Charge (Hold at %d%%)", tel.currentCapacity];
+        } else {
+            self.stopChargeButton.title = @" Stop Charge (Set to Current)";
+        }
+        self.stopChargeButton.contentTintColor = [NSColor labelColor];
     }
 
     // Top Up State
@@ -232,31 +248,29 @@
         self.dischargeButton.contentTintColor = [NSColor labelColor];
     }
 
-    // Sailing State
-    if (cfg->sailingEnabled) {
-        self.sailingButton.title = [NSString stringWithFormat:@" Sailing: %d%%", cfg->sailingDifference];
-        self.sailingButton.contentTintColor = [NSColor colorWithCalibratedRed:0.2 green:0.8 blue:0.9 alpha:1.0];
+    // --- Footer Telemetry: Voltage & Power Consumption ---
+    double volts = tel.voltageMv / 1000.0;
+    double battWatts = (tel.voltageMv * (double)tel.amperageMa) / 1000000.0;
+
+    NSString *powerStr;
+    if (tel.externalConnected) {
+        if (fabs(battWatts) < 0.2) {
+            powerStr = @"Power: 0.0W (Bypass)";
+        } else if (battWatts > 0) {
+            powerStr = [NSString stringWithFormat:@"Power: +%.1fW", battWatts];
+        } else {
+            powerStr = [NSString stringWithFormat:@"Power: %.1fW", battWatts];
+        }
     } else {
-        self.sailingButton.title = @" Sailing: Off";
-        self.sailingButton.contentTintColor = [NSColor secondaryLabelColor];
+        powerStr = [NSString stringWithFormat:@"Power: %.1fW", battWatts];
     }
 
-    // Heat Guard State
-    if (cfg->heatProtectionEnabled) {
-        self.heatButton.title = [NSString stringWithFormat:@" Heat: %.0f°C", cfg->maxTemperatureC];
-        self.heatButton.contentTintColor = (tel.temperatureC >= cfg->maxTemperatureC) ? [NSColor systemOrangeColor] : [NSColor labelColor];
-    } else {
-        self.heatButton.title = @" Heat: Off";
-        self.heatButton.contentTintColor = [NSColor secondaryLabelColor];
-    }
+    NSString *chargerInfo = (tel.chargerWatts > 0) ? [NSString stringWithFormat:@"%dW Charger", tel.chargerWatts]
+                                                   : (tel.externalConnected ? @"Connected" : @"On Battery");
 
-    // Footer Info
-    BOOL helperActive = isHelperInstalledAndRunning();
-    NSString *helperStatus = helperActive ? @"Hardware SMC Active" : @"Helper: Run install_helper.sh";
-    NSString *chargerStr = (tel.chargerWatts > 0) ? [NSString stringWithUTF8String:tel.chargerName] : @"On Battery";
-    self.footerLabel.stringValue = [NSString stringWithFormat:@"Temp: %.1f °C  •  Health: %.1f%% (%@)\nPower: %dW (%@)",
-                                    tel.temperatureC, tel.healthPercentage, helperStatus,
-                                    tel.chargerWatts, chargerStr];
+    self.footerLabel.stringValue = [NSString stringWithFormat:@"Voltage: %.2fV  •  %@\nTemp: %.1f °C  •  Health: %.1f%%  •  %@",
+                                    volts, powerStr,
+                                    tel.temperatureC, tel.healthPercentage, chargerInfo];
 }
 
 - (void)onSliderChanged:(NSSlider *)sender {
@@ -278,6 +292,14 @@
     }
 }
 
+- (void)onStopChargeClicked:(id)sender {
+    stopChargingAtCurrentLevel();
+    [self refreshUI];
+    if ([self.delegate respondsToSelector:@selector(popoverDidChangeChargeLimit)]) {
+        [self.delegate popoverDidChangeChargeLimit];
+    }
+}
+
 - (void)onTopUpClicked:(id)sender {
     toggleTopUp();
     [self refreshUI];
@@ -292,18 +314,6 @@
     if ([self.delegate respondsToSelector:@selector(popoverDidChangeChargeLimit)]) {
         [self.delegate popoverDidChangeChargeLimit];
     }
-}
-
-- (void)onSailingClicked:(id)sender {
-    VoltCraftConfig *cfg = getProConfig();
-    setSailingModeEnabled(!cfg->sailingEnabled);
-    [self refreshUI];
-}
-
-- (void)onHeatClicked:(id)sender {
-    VoltCraftConfig *cfg = getProConfig();
-    setHeatProtectionEnabled(!cfg->heatProtectionEnabled);
-    [self refreshUI];
 }
 
 - (void)onSettingsClicked:(id)sender {

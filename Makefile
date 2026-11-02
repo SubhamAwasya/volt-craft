@@ -31,6 +31,7 @@ app: $(TARGET)
 
 install: app
 	cp -R $(APP_NAME) /Applications/
+	rm -rf $(APP_NAME)
 
 clean:
 	rm -rf $(TARGET) $(HELPER_TARGET) $(APP_NAME)
